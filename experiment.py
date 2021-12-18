@@ -1,0 +1,210 @@
+import math
+import torch
+import numpy as np
+from sklearn import svm
+import sklearn.utils.validation as check
+from torch import optim
+from models import BaseVAE
+from models.types_ import *
+from utils import data_loader
+import pytorch_lightning as pl
+from torchvision import transforms
+import torchvision.utils as vutils
+from torchvision.datasets import CelebA
+from torchvision.datasets import FashionMNIST
+from torch.utils.data import DataLoader
+from torch.utils.data import random_split
+
+
+class VAEXperiment(pl.LightningModule):
+
+    def __init__(self,
+                 vae_model: BaseVAE,
+                 params: dict) -> None:
+        super(VAEXperiment, self).__init__()
+
+        self.model = vae_model
+        self.svm = svm.SVC()
+        self.params = params
+        self.curr_device = None
+        self.hold_graph = False
+        self.datasets = []      # Used only with MNIST dataset
+        self.num_train_imgs = 0
+        self.num_test_imgs = 0
+        try:
+            self.hold_graph = self.params['retain_first_backpass']
+        except:
+            pass
+
+    def forward(self, input: Tensor, **kwargs) -> Tensor:
+        return self.model(input, **kwargs)
+
+    def training_step(self, batch, batch_idx, optimizer_idx = 0):
+        real_img, labels = batch
+        self.curr_device = real_img.device
+
+        results = self.forward(real_img, labels = labels)
+        # Train the SVM one step
+        latent_vec = results[4].detach()
+        try:
+            results.append(self.svm.score(latent_vec, labels))
+        except:
+            results.append(torch.zeros(1))
+        self.svm = self.svm.fit(latent_vec, labels)
+        train_loss = self.model.loss_function(*results,
+                                              M_N = self.params['batch_size']/self.num_train_imgs,
+                                              optimizer_idx=optimizer_idx,
+                                              batch_idx = batch_idx,
+                                              mode = 0)
+
+        self.logger.log_metrics({key: val.item() for key, val in train_loss.items()}, self.current_epoch)
+
+        return train_loss
+
+    def validation_step(self, batch, batch_idx, optimizer_idx=0):
+        real_img, labels = batch
+        self.curr_device = real_img.device
+
+        results = self.forward(real_img, labels = labels)
+        latent_vec = results[4].detach()
+        try:
+            results.append(self.svm.score(latent_vec, labels))
+        except:
+            results.append(torch.zeros(1))
+        val_loss = self.model.loss_function(*results,
+                                            M_N = self.params['batch_size']/ self.num_val_imgs,
+                                            optimizer_idx = optimizer_idx,
+                                            batch_idx = batch_idx,
+                                            mode=1)
+        self.logger.log_metrics({key: val.item() for key, val in val_loss.items()}, self.current_epoch)
+
+        return val_loss
+
+    def validation_epoch_end(self, outputs):
+        # avg_loss = torch.stack([x['loss'] for x in outputs]).mean()
+        # tensorboard_logs = {'avg_val_loss': avg_loss}
+        self.sample_images()
+        # return {'val_loss': avg_loss, 'log': tensorboard_logs}
+        return
+
+    def sample_images(self):
+        # Get sample reconstruction image
+        test_input, test_label = next(iter(self.sample_dataloader))
+        test_input = test_input.to(self.curr_device)
+        test_label = test_label.to(self.curr_device)
+        recons = self.model.generate(test_input, labels = test_label)
+        vutils.save_image(recons.data,
+                          f"{self.logger.save_dir}/{self.logger.name}/version_{self.logger.version}/"
+                          f"recons_{self.logger.name}_{self.current_epoch}.png",
+                          normalize=True,
+                          nrow=12)
+
+        del test_input, recons #, samples
+
+    def configure_optimizers(self):
+
+        optims = []
+        scheds = []
+
+        optimizer = optim.Adam(self.model.parameters(),
+                               lr=self.params['LR'],
+                               weight_decay=self.params['weight_decay'])
+        optims.append(optimizer)
+        # Check if more than 1 optimizer is required (Used for adversarial training)
+        try:
+            if self.params['LR_2'] is not None:
+                optimizer2 = optim.Adam(getattr(self.model,self.params['submodel']).parameters(),
+                                        lr=self.params['LR_2'])
+                optims.append(optimizer2)
+        except:
+            pass
+
+        try:
+            if self.params['scheduler_gamma'] is not None:
+                scheduler = optim.lr_scheduler.ExponentialLR(optims[0],
+                                                             gamma = self.params['scheduler_gamma'])
+                scheds.append(scheduler)
+
+                # Check if another scheduler is required for the second optimizer
+                try:
+                    if self.params['scheduler_gamma_2'] is not None:
+                        scheduler2 = optim.lr_scheduler.ExponentialLR(optims[1],
+                                                                      gamma = self.params['scheduler_gamma_2'])
+                        scheds.append(scheduler2)
+                except:
+                    pass
+                return optims, scheds
+        except:
+            return optims
+
+    @data_loader
+    def train_dataloader(self):
+        transform = self.data_transforms()
+
+        if self.params['dataset'] == 'mnist':
+            dataset = self.datasets[0]
+        else:
+            raise ValueError('Undefined dataset type')
+
+        self.num_train_imgs = len(dataset)
+        return DataLoader(dataset,
+                          batch_size= self.params['batch_size'],
+                          shuffle = True,
+                          drop_last=True)
+
+    @data_loader
+    def test_dataloader(self):
+        transform = self.data_transforms()
+
+        if self.params['dataset'] == 'mnist':
+            dataset = FashionMNIST(root=self.params['data_path'],
+                                         train=False,
+                                         transform=transform,
+                                         download=True)
+        else:
+            raise ValueError('Undefined dataset type')
+
+        self.num_test_imgs = len(dataset)
+        return DataLoader(dataset,
+                          batch_size=self.params['batch_size'],
+                          shuffle=True,
+                          drop_last=True)
+
+    @data_loader
+    def val_dataloader(self):
+        transform = self.data_transforms()
+        val_sz = 0.1
+        if self.params['dataset'] == 'mnist':
+            mnist_dataset = FashionMNIST(root=self.params['data_path'],
+                                         train=True,
+                                         transform=transform,
+                                         download=True)
+            val_samples = np.round(len(mnist_dataset)*val_sz).astype(int)
+            train_samples = len(mnist_dataset) - val_samples
+            self.datasets = random_split(mnist_dataset,
+                                         [train_samples, val_samples],
+                                         generator=torch.Generator().manual_seed(42))
+            self.sample_dataloader = DataLoader(self.datasets[1],
+                                                 batch_size=144,
+                                                 shuffle=True,
+                                                 drop_last=True)
+            self.num_val_imgs = len(self.sample_dataloader)
+        else:
+            raise ValueError('Undefined dataset type')
+
+        return self.sample_dataloader
+
+    def data_transforms(self):
+
+        SetRange = transforms.Lambda(lambda X: 2 * X - 1.)
+        SetScale = transforms.Lambda(lambda X: X/X.sum(0).expand_as(X))
+
+        if self.params['dataset'] == 'mnist':
+            transform = transforms.Compose([transforms.ToTensor(),
+                                            transforms.Normalize((0.5,), (0.5,)),
+                                            transforms.Resize(self.params['img_size']),
+                                            SetRange])
+        else:
+            raise ValueError('Undefined dataset type')
+        return transform
+

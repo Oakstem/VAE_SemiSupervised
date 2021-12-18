@@ -1,0 +1,13 @@
+
+data/
+logs/
+
+VanillaVAE/version_0/
+
+__pycache__/
+.ipynb_checkpoints/
+.idea/
+assets/
+logs/
+tests/
+Run.ipynb
