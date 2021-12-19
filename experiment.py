@@ -31,6 +31,7 @@ class VAEXperiment(pl.LightningModule):
         self.datasets = []      # Used only with MNIST dataset
         self.num_train_imgs = 0
         self.num_test_imgs = 0
+        self.epoch_loss = dict.fromkeys(('loss','Reconstruction_Loss','KLD','SVM_Accuracy'), 0)
         try:
             self.hold_graph = self.params['retain_first_backpass']
         except:
@@ -47,20 +48,22 @@ class VAEXperiment(pl.LightningModule):
         # Train the SVM one step
         latent_vec = results[4].detach()
         try:
-            results.append(self.svm.score(latent_vec.cpu(), labels.cpu()))
+            results.append(torch.tensor(self.svm.score(latent_vec.cpu(), labels.cpu())))
         except:
-            results.append(torch.zeros(1))
+            results.append(torch.tensor(0))
         self.svm = self.svm.fit(latent_vec.cpu(), labels.cpu())
         train_loss = self.model.loss_function(*results,
                                               M_N = self.params['batch_size']/self.num_train_imgs,
                                               optimizer_idx=optimizer_idx,
-                                              batch_idx = batch_idx,
-                                              mode = 0)
-
-        # self.logger.log_metrics({key: val.item() for key, val in train_loss.items()}, self.current_epoch)
-        self.log('train', {key: val.item() for key, val in train_loss.items()}, on_step=False, on_epoch=True)
+                                              batch_idx = batch_idx)
 
         return train_loss
+
+    def training_epoch_end(self, outputs):
+        train_epoch_loss = dict.fromkeys(outputs[0].keys(), 0)
+        for key in outputs[0].keys():
+            train_epoch_loss[key] = torch.stack([abs(x[key]) for x in outputs]).mean()
+            self.log(key, {'train': train_epoch_loss[key].item()}, on_epoch=True, on_step=False)
 
     def validation_step(self, batch, batch_idx, optimizer_idx=0):
         real_img, labels = batch
@@ -69,24 +72,23 @@ class VAEXperiment(pl.LightningModule):
         results = self.forward(real_img, labels = labels)
         latent_vec = results[4].detach()
         try:
-            results.append(self.svm.score(latent_vec.cpu(), labels.cpu()))
+            results.append(torch.tensor(self.svm.score(latent_vec.cpu(), labels.cpu())))
         except:
             results.append(torch.zeros(1))
         val_loss = self.model.loss_function(*results,
                                             M_N = self.params['batch_size']/ self.num_val_imgs,
                                             optimizer_idx = optimizer_idx,
-                                            batch_idx = batch_idx,
-                                            mode=1)
-        # self.logger.log_metrics({key: val.item() for key, val in val_loss.items()}, self.current_epoch)
-        self.log('validation', {key: val.item() for key, val in val_loss.items()}, on_step=False, on_epoch=True)
-
+                                            batch_idx = batch_idx)
         return val_loss
 
     def validation_epoch_end(self, outputs):
-        # avg_loss = torch.stack([x['loss'] for x in outputs]).mean()
-        # tensorboard_logs = {'avg_val_loss': avg_loss}
-        self.sample_images()
-        # return {'val_loss': avg_loss, 'log': tensorboard_logs}
+        val_epoch_loss = dict.fromkeys(outputs[0].keys(), 0)
+        for key in outputs[0].keys():
+            val_epoch_loss[key] = torch.stack([abs(x[key]) for x in outputs]).mean()
+            self.log(key, {'val': val_epoch_loss[key].item()}, on_epoch=True, on_step=False)
+        if self.current_epoch % 10 == 0:
+            self.sample_images()
+
         return
 
     def sample_images(self):
