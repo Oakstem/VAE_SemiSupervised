@@ -57,7 +57,8 @@ class VAEXperiment(pl.LightningModule):
                                               batch_idx = batch_idx,
                                               mode = 0)
 
-        self.logger.log_metrics({key: val.item() for key, val in train_loss.items()}, self.current_epoch)
+        # self.logger.log_metrics({key: val.item() for key, val in train_loss.items()}, self.current_epoch)
+        self.log('train', {key: val.item() for key, val in train_loss.items()}, on_step=False, on_epoch=True)
 
         return train_loss
 
@@ -76,7 +77,8 @@ class VAEXperiment(pl.LightningModule):
                                             optimizer_idx = optimizer_idx,
                                             batch_idx = batch_idx,
                                             mode=1)
-        self.logger.log_metrics({key: val.item() for key, val in val_loss.items()}, self.current_epoch)
+        # self.logger.log_metrics({key: val.item() for key, val in val_loss.items()}, self.current_epoch)
+        self.log('validation', {key: val.item() for key, val in val_loss.items()}, on_step=False, on_epoch=True)
 
         return val_loss
 
@@ -196,14 +198,14 @@ class VAEXperiment(pl.LightningModule):
 
     def data_transforms(self):
 
-        SetRange = transforms.Lambda(lambda X: 2 * X - 1.)
-        SetScale = transforms.Lambda(lambda X: X/X.sum(0).expand_as(X))
+        # SetRange = transforms.Lambda(lambda X: 2 * X - 1.)
+        # SetScale = transforms.Lambda(lambda X: X/X.sum(0).expand_as(X))
 
         if self.params['dataset'] == 'mnist':
             transform = transforms.Compose([transforms.ToTensor(),
                                             transforms.Normalize((0.5,), (0.5,)),
-                                            transforms.Resize(self.params['img_size']),
-                                            SetRange])
+                                            transforms.Resize(self.params['img_size'])
+                                            ])
         else:
             raise ValueError('Undefined dataset type')
         return transform
