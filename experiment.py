@@ -26,16 +26,19 @@ class VAEXperiment(pl.LightningModule):
         self.model = vae_model
         self.svm = svm.SVC()
         self.params = params
-        self.curr_device = None
+        self.curr_device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
         self.hold_graph = False
-        self.datasets = []      # Used only with MNIST dataset
+        self.datasets = []      # train&val datasets
+        self.test_dataset = []      # test dataset
         self.num_train_imgs = 0
         self.num_test_imgs = 0
         self.epoch_loss = dict.fromkeys(('loss','Reconstruction_Loss','KLD','SVM_Accuracy'), 0)
+        self.val_sz = 0.1
         try:
             self.hold_graph = self.params['retain_first_backpass']
         except:
             pass
+        self.load_datasets()
 
     def forward(self, input: Tensor, **kwargs) -> Tensor:
         return self.model(input, **kwargs)
@@ -176,18 +179,7 @@ class VAEXperiment(pl.LightningModule):
 
     @data_loader
     def val_dataloader(self):
-        transform = self.data_transforms()
-        val_sz = 0.1
         if self.params['dataset'] == 'mnist':
-            mnist_dataset = FashionMNIST(root=self.params['data_path'],
-                                         train=True,
-                                         transform=transform,
-                                         download=True)
-            val_samples = np.round(len(mnist_dataset)*val_sz).astype(int)
-            train_samples = len(mnist_dataset) - val_samples
-            self.datasets = random_split(mnist_dataset,
-                                         [train_samples, val_samples],
-                                         generator=torch.Generator().manual_seed(42))
             self.sample_dataloader = DataLoader(self.datasets[1],
                                                  batch_size=144,
                                                  shuffle=False,
@@ -198,8 +190,23 @@ class VAEXperiment(pl.LightningModule):
 
         return self.sample_dataloader
 
-    def data_transforms(self):
+    def load_datasets(self):
+        transform = self.data_transforms()
+        if self.params['dataset'] == 'mnist':
+            mnist_dataset = FashionMNIST(root=self.params['data_path'],
+                                         train=True,
+                                         transform=transform,
+                                         download=True)
+            val_samples = np.round(len(mnist_dataset) * self.val_sz).astype(int)
+            train_samples = len(mnist_dataset) - val_samples
+            self.datasets = random_split(mnist_dataset, [train_samples, val_samples],
+                                         generator=torch.Generator().manual_seed(42))
+            self.test_dataset = FashionMNIST(root=self.params['data_path'],
+                                             train=False,
+                                             transform=transform,
+                                             download=True)
 
+    def data_transforms(self):
         # SetRange = transforms.Lambda(lambda X: 2 * X - 1.)
         # SetScale = transforms.Lambda(lambda X: X/X.sum(0).expand_as(X))
 
@@ -211,4 +218,26 @@ class VAEXperiment(pl.LightningModule):
         else:
             raise ValueError('Undefined dataset type')
         return transform
+
+    def load_checkpoint(self, path=None):
+        from collections import OrderedDict
+        if not path:
+            checkpoint_path = f"{config['logging_params']['save_dir']}" \
+                              f"{config['logging_params']['name']}"
+            list_of_files = glob.glob(f"{checkpoint_path}/*")
+            latest_file = max(list_of_files, key=os.path.getctime)
+            checkpoint_path = glob.glob(f"{latest_file}/checkpoints/*")[0]
+        else:
+            checkpoint_path = path
+
+        checkpoint = torch.load(checkpoint_path, map_location=self.curr_device)
+        new_state_dict = OrderedDict()
+        if "model" in next(iter(checkpoint['state_dict'])):
+            for k, v in checkpoint["state_dict"].items():
+                name = k[6:]  # remove "module"
+                new_state_dict[name] = v
+        else:
+            new_state_dict = checkpoint['state_dict']
+        self.model.load_state_dict(new_state_dict)
+        return self.model
 
