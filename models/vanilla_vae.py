@@ -146,9 +146,9 @@ class VanillaVAE(BaseVAE):
 
         result = {0: {'loss': loss, 'train_Reconstruction_Loss': recons_loss.detach(), 'train_KLD': -kld_loss.detach(),
                       'train_SVM_Accuracy': args[5]},
-                  1: {'val_loss': loss, 'val_Reconstruction_Loss': recons_loss, 'val_KLD': -kld_loss,
+                  1: {'val_loss': loss, 'val_Reconstruction_Loss': recons_loss.detach(), 'val_KLD': -kld_loss.detach(),
                       'val_SVM_Accuracy': args[5]},
-                  2: {'test_loss': loss, 'test_Reconstruction_Loss': recons_loss, 'test_KLD': -kld_loss,
+                  2: {'test_loss': loss, 'test_Reconstruction_Loss': recons_loss.detach(), 'test_KLD': -kld_loss.detach(),
                       'test_SVM_Accuracy': args[5]}}[kwargs['mode']]
 
         return result
