@@ -143,17 +143,8 @@ class VanillaVAE(BaseVAE):
         kld_loss = torch.mean(-0.5 * torch.sum(1 + log_var - mu ** 2 - log_var.exp(), dim = 1), dim = 0)
 
         loss = recons_loss + kld_weight * kld_loss
-        # match args['mode']:
-        #     case 1:
-        #         result = {'val_loss': loss, 'val_Reconstruction_Loss': recons_loss, 'val_KLD': -kld_loss,
-        #                   'val_SVM_Accuracy': args[5]}
-        #     case 2:
-        #         result = {'test_loss': loss, 'test_Reconstruction_Loss': recons_loss, 'test_KLD': -kld_loss,
-        #                   'test_SVM_Accuracy': args[5]}
-        #     case _:
-        #         result = {'train_loss': loss, 'train_Reconstruction_Loss': recons_loss, 'train_KLD': -kld_loss,
-        #                   'train_SVM_Accuracy': args[5]}
-        result = {0: {'loss': loss, 'train_Reconstruction_Loss': recons_loss, 'train_KLD': -kld_loss,
+
+        result = {0: {'loss': loss, 'train_Reconstruction_Loss': recons_loss.detach(), 'train_KLD': -kld_loss.detach(),
                       'train_SVM_Accuracy': args[5]},
                   1: {'val_loss': loss, 'val_Reconstruction_Loss': recons_loss, 'val_KLD': -kld_loss,
                       'val_SVM_Accuracy': args[5]},

@@ -47,10 +47,10 @@ class VAEXperiment(pl.LightningModule):
         # Train the SVM one step
         latent_vec = results[4].detach()
         try:
-            results.append(self.svm.score(latent_vec, labels))
+            results.append(self.svm.score(latent_vec.cpu(), labels.cpu()))
         except:
             results.append(torch.zeros(1))
-        self.svm = self.svm.fit(latent_vec, labels)
+        self.svm = self.svm.fit(latent_vec.cpu(), labels.cpu())
         train_loss = self.model.loss_function(*results,
                                               M_N = self.params['batch_size']/self.num_train_imgs,
                                               optimizer_idx=optimizer_idx,
@@ -68,7 +68,7 @@ class VAEXperiment(pl.LightningModule):
         results = self.forward(real_img, labels = labels)
         latent_vec = results[4].detach()
         try:
-            results.append(self.svm.score(latent_vec, labels))
+            results.append(self.svm.score(latent_vec.cpu(), labels.cpu()))
         except:
             results.append(torch.zeros(1))
         val_loss = self.model.loss_function(*results,
@@ -186,7 +186,7 @@ class VAEXperiment(pl.LightningModule):
                                          generator=torch.Generator().manual_seed(42))
             self.sample_dataloader = DataLoader(self.datasets[1],
                                                  batch_size=144,
-                                                 shuffle=True,
+                                                 shuffle=False,
                                                  drop_last=True)
             self.num_val_imgs = len(self.sample_dataloader)
         else:
