@@ -45,11 +45,11 @@ experiment = VAEXperiment(model,
 gpus = 1 if torch.cuda.is_available() else []
 config['trainer_params']['gpus'] = gpus
 runner = Trainer(default_root_dir=f"{tb_logger.save_dir}",
-                 min_epochs=1,
+                 min_epochs=1,  
                  logger=tb_logger,
-                 log_every_n_steps=1,
-                 limit_train_batches=0.1,
-                 limit_val_batches=0.1,
+                 log_every_n_steps=100,
+                 limit_train_batches=1.,
+                 limit_val_batches=1.,
                  num_sanity_val_steps=1,
                  **config['trainer_params'])
 #
