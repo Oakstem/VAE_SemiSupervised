@@ -6,15 +6,13 @@ from .types_ import *
 
 
 class VanillaVAE(BaseVAE):
-
-
     def __init__(self,
                  in_channels: int,
                  latent_dim: int,
                  hidden_dims: List = None,
                  **kwargs) -> None:
         super(VanillaVAE, self).__init__()
-
+        self.save_hyperparameters()
         self.latent_dim = latent_dim
 
         modules = []
@@ -139,12 +137,10 @@ class VanillaVAE(BaseVAE):
         kld_weight = kwargs['M_N'] # Account for the minibatch samples from the dataset
         recons_loss =F.mse_loss(recons, input)
 
-
         kld_loss = torch.mean(-0.5 * torch.sum(1 + log_var - mu ** 2 - log_var.exp(), dim = 1), dim = 0)
 
         loss = recons_loss + kld_weight * kld_loss
-        result = {'loss': loss, 'Reconstruction_Loss': recons_loss.detach(), 'KLD': -kld_loss.detach(),
-                      'SVM_Accuracy': args[5]}
+        result = {'loss': loss, 'Reconstruction_Loss': recons_loss.detach(), 'KLD': -kld_loss.detach()}
 
         return result
 

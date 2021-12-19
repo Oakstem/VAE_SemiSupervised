@@ -9,10 +9,10 @@ from utils import data_loader
 import pytorch_lightning as pl
 from torchvision import transforms
 import torchvision.utils as vutils
-from torchvision.datasets import CelebA
 from torchvision.datasets import FashionMNIST
 from torch.utils.data import DataLoader
 from torch.utils.data import random_split
+from pytorch_lightning.callbacks import ModelCheckpoint
 
 
 class VAEXperiment(pl.LightningModule):
@@ -37,6 +37,12 @@ class VAEXperiment(pl.LightningModule):
         except:
             pass
         self.load_datasets()
+        self.checkpoint_callback = ModelCheckpoint(
+            monitor="loss_val",
+            dirpath="logs/best_model/",
+            filename="vae-{epoch:02d}-{val_loss:.2f}",
+            mode="min",
+        )
 
     def forward(self, input: Tensor, **kwargs) -> Tensor:
         return self.model(input, **kwargs)
@@ -50,7 +56,6 @@ class VAEXperiment(pl.LightningModule):
                                               M_N = self.params['batch_size']/self.num_train_imgs,
                                               optimizer_idx=optimizer_idx,
                                               batch_idx = batch_idx)
-
         return train_loss
 
     def training_epoch_end(self, outputs):
@@ -63,12 +68,12 @@ class VAEXperiment(pl.LightningModule):
         real_img, labels = batch
         self.curr_device = real_img.device
 
-        results = self.forward(real_img, labels = labels)
+        results = self.forward(real_img, labels=labels)
 
         val_loss = self.model.loss_function(*results,
-                                            M_N = self.params['batch_size']/ self.num_val_imgs,
-                                            optimizer_idx = optimizer_idx,
-                                            batch_idx = batch_idx)
+                                            M_N=self.params['batch_size']/self.num_val_imgs,
+                                            optimizer_idx=optimizer_idx,
+                                            batch_idx=batch_idx)
         return val_loss
 
     def validation_epoch_end(self, outputs):
@@ -227,4 +232,5 @@ class VAEXperiment(pl.LightningModule):
             new_state_dict = checkpoint['state_dict']
         self.model.load_state_dict(new_state_dict)
         return self.model
+
 
