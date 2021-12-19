@@ -1,7 +1,6 @@
 import math
 import torch
 import numpy as np
-from sklearn import svm
 import sklearn.utils.validation as check
 from torch import optim
 from models import BaseVAE
@@ -24,7 +23,6 @@ class VAEXperiment(pl.LightningModule):
         super(VAEXperiment, self).__init__()
 
         self.model = vae_model
-        self.svm = svm.SVC()
         self.params = params
         self.curr_device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
         self.hold_graph = False
@@ -48,13 +46,6 @@ class VAEXperiment(pl.LightningModule):
         self.curr_device = real_img.device
 
         results = self.forward(real_img, labels = labels)
-        # Train the SVM one step
-        latent_vec = results[4].detach()
-        try:
-            results.append(torch.tensor(self.svm.score(latent_vec.cpu(), labels.cpu())))
-        except:
-            results.append(torch.tensor(0))
-        self.svm = self.svm.fit(latent_vec.cpu(), labels.cpu())
         train_loss = self.model.loss_function(*results,
                                               M_N = self.params['batch_size']/self.num_train_imgs,
                                               optimizer_idx=optimizer_idx,
@@ -73,11 +64,7 @@ class VAEXperiment(pl.LightningModule):
         self.curr_device = real_img.device
 
         results = self.forward(real_img, labels = labels)
-        latent_vec = results[4].detach()
-        try:
-            results.append(torch.tensor(self.svm.score(latent_vec.cpu(), labels.cpu())))
-        except:
-            results.append(torch.zeros(1))
+
         val_loss = self.model.loss_function(*results,
                                             M_N = self.params['batch_size']/ self.num_val_imgs,
                                             optimizer_idx = optimizer_idx,
