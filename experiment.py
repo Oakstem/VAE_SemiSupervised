@@ -62,7 +62,7 @@ class VAEXperiment(pl.LightningModule):
     def training_epoch_end(self, outputs):
         train_epoch_loss = dict.fromkeys(outputs[0].keys(), 0)
         for key in outputs[0].keys():
-            train_epoch_loss[key] = torch.stack([x[key].abs() for x in outputs]).mean()
+            train_epoch_loss[key] = torch.stack([x[key] for x in outputs]).mean().abs()
             self.log(key, {'train': train_epoch_loss[key].item()}, on_epoch=True, on_step=False)
 
     def validation_step(self, batch, batch_idx, optimizer_idx=0):
@@ -84,7 +84,7 @@ class VAEXperiment(pl.LightningModule):
     def validation_epoch_end(self, outputs):
         val_epoch_loss = dict.fromkeys(outputs[0].keys(), 0)
         for key in outputs[0].keys():
-            val_epoch_loss[key] = torch.stack([x[key].abs() for x in outputs]).mean()
+            val_epoch_loss[key] = torch.stack([x[key] for x in outputs]).mean().abs()
             self.log(key, {'val': val_epoch_loss[key].item()}, on_epoch=True, on_step=False)
         if self.current_epoch % 10 == 0:
             self.sample_images()
