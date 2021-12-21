@@ -39,7 +39,7 @@ class SVMClass():
         # Testing with SVM
         latent_vec = torch.empty(0)
         labels = torch.empty(0)
-        preds = torch.empty(0)
+
         self.model.eval()
         dataloader = DataLoader(test_dataset, batch_size=self.params['batch_size'], shuffle=False, drop_last=True)
         for idx, batch in enumerate(dataloader):

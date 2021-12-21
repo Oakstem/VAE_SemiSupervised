@@ -14,9 +14,10 @@ exp_params:
 
 trainer_params:
   gpus: []
-  max_epochs: 30
+  max_epochs: 5
 
 logging_params:
   save_dir: "logs/"
+  best_model_dir: "trained_models/best_vae.model"
   name: "VanillaVAE"
   manual_seed: 1265

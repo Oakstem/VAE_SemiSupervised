@@ -13,17 +13,19 @@ from torchvision.datasets import FashionMNIST
 from torch.utils.data import DataLoader
 from torch.utils.data import random_split
 from pytorch_lightning.callbacks import ModelCheckpoint
+from pytorch_lightning.callbacks import Callback
 
 
 class VAEXperiment(pl.LightningModule):
 
     def __init__(self,
                  vae_model: BaseVAE,
-                 params: dict) -> None:
+                 params: dict, log_params: dict) -> None:
         super(VAEXperiment, self).__init__()
 
         self.model = vae_model
         self.params = params
+        self.log_params = log_params
         self.curr_device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
         self.hold_graph = False
         self.datasets = []      # train&val datasets
@@ -32,17 +34,13 @@ class VAEXperiment(pl.LightningModule):
         self.num_test_imgs = 0
         self.epoch_loss = dict.fromkeys(('loss','Reconstruction_Loss','KLD','SVM_Accuracy'), 0)
         self.val_sz = 0.1
+        self.callbacks = SaveCallback()
         try:
             self.hold_graph = self.params['retain_first_backpass']
         except:
             pass
         self.load_datasets()
-        self.checkpoint_callback = ModelCheckpoint(
-            monitor="loss_val",
-            dirpath="logs/best_model/",
-            filename="vae-{epoch:02d}-{val_loss:.2f}",
-            mode="min",
-        )
+
 
     def forward(self, input: Tensor, **kwargs) -> Tensor:
         return self.model(input, **kwargs)
@@ -59,10 +57,11 @@ class VAEXperiment(pl.LightningModule):
         return train_loss
 
     def training_epoch_end(self, outputs):
-        train_epoch_loss = dict.fromkeys(outputs[0].keys(), 0)
-        for key in outputs[0].keys():
-            train_epoch_loss[key] = torch.stack([x[key] for x in outputs]).mean().abs()
-            self.log(key, {'train': train_epoch_loss[key].item()}, on_epoch=True, on_step=False)
+        # train_epoch_loss = dict.fromkeys(outputs[0].keys(), 0)
+        # for key in outputs[0].keys():
+        #     train_epoch_loss[key] = torch.stack([x[key] for x in outputs]).mean().abs()
+        #     self.log(key, {'train': train_epoch_loss[key].item()}, on_epoch=True, on_step=False)
+        self.log('loss', outputs[0]['loss'].item(), on_epoch=True, on_step=False)
 
     def validation_step(self, batch, batch_idx, optimizer_idx=0):
         real_img, labels = batch
@@ -77,10 +76,11 @@ class VAEXperiment(pl.LightningModule):
         return val_loss
 
     def validation_epoch_end(self, outputs):
-        val_epoch_loss = dict.fromkeys(outputs[0].keys(), 0)
-        for key in outputs[0].keys():
-            val_epoch_loss[key] = torch.stack([x[key] for x in outputs]).mean().abs()
-            self.log(key, {'val': val_epoch_loss[key].item()}, on_epoch=True, on_step=False)
+        # val_epoch_loss = dict.fromkeys(outputs[0].keys(), 0)
+        # for key in outputs[0].keys():
+        #     val_epoch_loss[key] = torch.stack([x[key] for x in outputs]).mean().abs()
+        #     self.log(key, {'val': val_epoch_loss[key].item()}, on_epoch=True, on_step=False)
+        self.log('val_loss', outputs[0]['loss'].item(), on_epoch=True, on_step=False)
         if self.current_epoch % 10 == 0:
             self.sample_images()
 
@@ -176,7 +176,7 @@ class VAEXperiment(pl.LightningModule):
                                                  batch_size=144,
                                                  shuffle=False,
                                                  drop_last=True)
-            self.num_val_imgs = len(self.sample_dataloader)
+            self.num_val_imgs = len(self.datasets[1])
         else:
             raise ValueError('Undefined dataset type')
 
@@ -232,5 +232,21 @@ class VAEXperiment(pl.LightningModule):
             new_state_dict = checkpoint['state_dict']
         self.model.load_state_dict(new_state_dict)
         return self.model
+
+
+class SaveCallback(Callback):
+    checkpoint_callback = ModelCheckpoint(
+        monitor="val_loss",
+        dirpath="logs/best_model/",
+        filename="vae-{epoch:02d}-{val_loss:.2f}",
+        mode="min"
+    )
+
+    def on_train_end(self, trainer, experiment):
+        print("Training is done.")
+        # Saving the model with best results as "best.model"
+        best = experiment.load_checkpoint(path=trainer.checkpoint_callback.best_model_path)
+        torch.save(best, experiment.log_params['best_model_dir'])
+
 
 
