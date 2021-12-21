@@ -26,17 +26,16 @@ class SVMClass():
             batch[1] = batch[1].to(self.device)
             if idx < num_samples:
                 mu, log_var = self.model.encode(batch[0])
-                latent_vec = self.model.reparameterize(mu, log_var).tolist()
-                labels = batch[1].tolist()
-                self.svm = self.svm.fit(latent_vec, labels)
+                latent_vec = torch.cat((latent_vec, self.model.reparameterize(mu, log_var)))
+                labels = torch.cat((labels, batch[1]))
             else:
                 break
         return latent_vec, labels
 
     def train(self, latent_vec, labels):
         # Training SVM
-        x = latent_vec.tolist()
-        y = labels.tolist()
+        x = latent_vec.detach()
+        y = labels.detach()
         self.svm = self.svm.fit(x, y)
 
     def test(self, test_dataset):
