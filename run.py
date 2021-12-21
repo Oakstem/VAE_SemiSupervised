@@ -47,20 +47,20 @@ runner = Trainer(default_root_dir=f"{tb_logger.save_dir}",
                  callbacks=[SaveCallback().checkpoint_callback, SaveCallback()],
                  **config['trainer_params'])
 #
-print(f"======= Training {config['model_params']['name']} =======")
-runner.fit(experiment)
-
-print(f"======= Finished Training =======")
+# print(f"======= Training {config['model_params']['name']} =======")
+# runner.fit(experiment)
+#
+# print(f"======= Finished Training =======")
 
 #   Test for 3000 labeled samples
-num_samples = 100
+num_samples = 10
 model = torch.load(config['logging_params']['best_model_dir'])
 classifier = SVMClass(model, config['exp_params'])
-train_dataset = experiment.datasets
+train_dataset = experiment.datasets[0]
 test_dataset = experiment.test_dataset
-latent, labels = classifier.gen_latent(train_dataset[0], num_samples)
+latent, labels = classifier.gen_latent(train_dataset, num_samples)
 classifier.train(latent, labels)
-classifier.test(test_dataset, num_samples)
+classifier.test(test_dataset)
 print(f"Classifier trained with:{num_samples} samples, Resulted Accuracy:{100*classifier.accuracy:.3d},"
       f" Loss:{classifier.loss:.2f}")
 
