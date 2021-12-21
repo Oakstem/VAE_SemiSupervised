@@ -13,14 +13,17 @@ class SVMClass():
         self.params = params
         self.accuracy = 0
         self.loss = 100
+        self.device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
 
     def gen_latent(self, dataset, num_samples):
         # Generating Latent Vectors
         self.model.eval()
-        latent_vec = torch.empty(0)
-        labels = torch.empty(0)
+        latent_vec = torch.empty(0).to(self.device)
+        labels = torch.empty(0).to(self.device)
         dataloader = DataLoader(dataset, batch_size=self.params['batch_size'], shuffle = False, drop_last=True)
         for idx, batch in enumerate(dataloader):
+            batch[0] = batch[0].to(self.device)
+            batch[1] = batch[1].to(self.device)
             if idx < num_samples:
                 mu, log_var = self.model.encode(batch[0])
                 latent_vec = torch.cat((latent_vec, self.model.reparameterize(mu, log_var)))
@@ -37,12 +40,14 @@ class SVMClass():
 
     def test(self, test_dataset, num_samples=10):
         # Testing with SVM
-        latent_vec = torch.empty(0)
-        labels = torch.empty(0)
+        latent_vec = torch.empty(0).to(self.device)
+        labels = torch.empty(0).to(self.device)
 
         self.model.eval()
         dataloader = DataLoader(test_dataset, batch_size=self.params['batch_size'], shuffle=False, drop_last=True)
         for idx, batch in enumerate(dataloader):
+            batch[0] = batch[0].to(self.device)
+            batch[1] = batch[1].to(self.device)
             if idx < num_samples:
                 mu, log_var = self.model.encode(batch[0])
                 latent_vec = torch.cat((latent_vec, self.model.reparameterize(mu, log_var)))
