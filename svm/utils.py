@@ -55,6 +55,6 @@ class SVMClass():
             else:
                 break
         preds = torch.tensor(self.svm.predict_proba(latent_vec.detach().cpu()))
-        self.accuracy = self.svm.score(latent_vec.detach().cpu(), labels)
+        self.accuracy = self.svm.score(latent_vec.detach().cpu(), labels.cpu())
         loss = torch.nn.CrossEntropyLoss()
         self.loss = loss(preds, torch.tensor(labels, dtype=torch.int64))
