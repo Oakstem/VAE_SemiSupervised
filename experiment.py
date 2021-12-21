@@ -34,7 +34,7 @@ class VAEXperiment(pl.LightningModule):
         self.num_test_imgs = 0
         self.epoch_loss = dict.fromkeys(('loss','Reconstruction_Loss','KLD','SVM_Accuracy'), 0)
         self.val_sz = 0.1
-        self.callbacks = SaveCallback()
+
         try:
             self.hold_graph = self.params['retain_first_backpass']
         except:
@@ -237,7 +237,7 @@ class VAEXperiment(pl.LightningModule):
 class SaveCallback(Callback):
     checkpoint_callback = ModelCheckpoint(
         monitor="val_loss",
-        dirpath="logs/best_model/",
+        dirpath="logs/checkpoints/",
         filename="vae-{epoch:02d}-{val_loss:.2f}",
         mode="min"
     )

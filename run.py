@@ -4,11 +4,12 @@ import numpy as np
 
 from models import *
 from experiment import VAEXperiment
+from experiment import SaveCallback
 import torch.backends.cudnn as cudnn
 from pytorch_lightning import Trainer
-from pytorch_lightning.loggers import TestTubeLogger
 from pytorch_lightning.loggers import TensorBoardLogger
 from svm.utils import SVMClass
+
 
 parser = argparse.ArgumentParser(description='Generic runner for VAE models')
 parser.add_argument('--config',  '-c',
@@ -43,7 +44,7 @@ runner = Trainer(default_root_dir=f"{tb_logger.save_dir}",
                  limit_train_batches=1.,
                  limit_val_batches=1.,
                  num_sanity_val_steps=1,
-                 callbacks=[experiment.callbacks],
+                 callbacks=[SaveCallback().checkpoint_callback, SaveCallback()],
                  **config['trainer_params'])
 #
 print(f"======= Training {config['model_params']['name']} =======")
