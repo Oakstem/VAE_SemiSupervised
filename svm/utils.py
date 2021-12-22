@@ -58,7 +58,7 @@ class SVMClass():
             preds = torch.tensor(self.svm.predict_proba(latent_vec))
             print(f"latent type:{type(latent_vec)}, labels type:{type(labels)}")
             self.accuracy += self.svm.score(latent_vec, labels)
-            self.loss += loss(preds, torch.tensor(labels, dtype=torch.int64))
+            self.loss += loss(preds, torch.tensor(labels, dtype=torch.float64))
 
         self.accuracy = self.accuracy / len(dataloader)
         self.loss = self.loss / len(dataloader)
