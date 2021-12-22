@@ -1,7 +1,7 @@
 model_params:
   name: 'VanillaVAE'
   in_channels: 1
-  latent_dim: 50
+  latent_dim: 30
 
 exp_params:
   dataset: mnist
