@@ -20,7 +20,7 @@ class VAEXperiment(pl.LightningModule):
 
     def __init__(self,
                  vae_model: BaseVAE,
-                 params: dict, log_params: dict) -> None:
+                 params: dict, log_params: dict, model_params: dict) -> None:
         super(VAEXperiment, self).__init__()
 
         self.model = vae_model
@@ -34,13 +34,13 @@ class VAEXperiment(pl.LightningModule):
         self.num_test_imgs = 0
         self.epoch_loss = dict.fromkeys(('loss','Reconstruction_Loss','KLD','SVM_Accuracy'), 0)
         self.val_sz = 0.1
+        self.run = f"-latent_sz:{model_params['latent_dim']}"
 
         try:
             self.hold_graph = self.params['retain_first_backpass']
         except:
             pass
         self.load_datasets()
-
 
     def forward(self, input: Tensor, **kwargs) -> Tensor:
         return self.model(input, **kwargs)
@@ -56,12 +56,12 @@ class VAEXperiment(pl.LightningModule):
                                               batch_idx = batch_idx)
         return train_loss
 
-    def training_epoch_end(self, outputs):
-        # train_epoch_loss = dict.fromkeys(outputs[0].keys(), 0)
-        # for key in outputs[0].keys():
-        #     train_epoch_loss[key] = torch.stack([x[key] for x in outputs]).mean().abs()
-        #     self.log(key, {'train': train_epoch_loss[key].item()}, on_epoch=True, on_step=False)
-        self.log('loss', outputs[0]['loss'].item(), on_epoch=True, on_step=False)
+    def training_epoch_end(self, outputs: list):
+        # self.log('loss', outputs[0]['loss'].item(), on_epoch=True, on_step=False)
+        self.logger.experiment.add_scalar("Loss/Train", outputs[0]['loss'].item(), self.current_epoch+1)
+        if self.current_epoch == 0:
+            sampleImg = torch.rand((self.params['batch_size'], 1, self.params['img_size'], self.params['img_size']))
+            self.logger.experiment.add_graph(self.model, sampleImg)
 
     def validation_step(self, batch, batch_idx, optimizer_idx=0):
         real_img, labels = batch
@@ -76,11 +76,8 @@ class VAEXperiment(pl.LightningModule):
         return val_loss
 
     def validation_epoch_end(self, outputs):
-        # val_epoch_loss = dict.fromkeys(outputs[0].keys(), 0)
-        # for key in outputs[0].keys():
-        #     val_epoch_loss[key] = torch.stack([x[key] for x in outputs]).mean().abs()
-        #     self.log(key, {'val': val_epoch_loss[key].item()}, on_epoch=True, on_step=False)
-        self.log('val_loss', outputs[0]['loss'].item(), on_epoch=True, on_step=False)
+        # self.log('val_loss', outputs[0]['loss'].item(), on_epoch=True, on_step=False)
+        self.logger.experiment.add_scalar("Loss/Val", outputs[0]['loss'].item(), self.current_epoch)
         if self.current_epoch % 10 == 0:
             self.sample_images()
 
@@ -147,8 +144,8 @@ class VAEXperiment(pl.LightningModule):
 
         self.num_train_imgs = len(dataset)
         return DataLoader(dataset,
-                          batch_size= self.params['batch_size'],
-                          shuffle = True,
+                          batch_size=self.params['batch_size'],
+                          shuffle=True,
                           drop_last=True)
 
     @data_loader
@@ -234,10 +231,11 @@ class VAEXperiment(pl.LightningModule):
         return self.model
 
 
+
 class SaveCallback(Callback):
     checkpoint_callback = ModelCheckpoint(
         monitor="val_loss",
-        dirpath="logs/checkpoints/",
+        dirpath="checkpoints/",
         filename="vae-{epoch:02d}-{val_loss:.2f}",
         mode="min"
     )
@@ -249,4 +247,8 @@ class SaveCallback(Callback):
         torch.save(best, experiment.log_params['best_model_dir'])
 
 
+def get_model_version(params: dict):
+    path = f"run-latent_sz_{params['model_params']['latent_dim']}"
+    # path = "logs/"
+    return path
 

@@ -15,7 +15,7 @@ class SVMClass():
         self.loss = 0
         self.device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
 
-    def gen_latent(self, dataset, num_samples):
+    def gen_latent(self, dataset: object, num_samples: int):
         # Generating Latent Vectors
         self.model.eval()
         latent_vec = torch.empty(0).to(self.device)
@@ -55,10 +55,9 @@ class SVMClass():
             latent_vec = self.model.reparameterize(mu, log_var).detach().tolist()
             labels = batch[1].tolist()
 
-            preds = torch.tensor(self.svm.predict_proba(latent_vec))
-            print(f"latent type:{type(latent_vec)}, labels type:{type(labels)}")
+            preds = torch.as_tensor(self.svm.predict_proba(latent_vec))
             self.accuracy += self.svm.score(latent_vec, labels)
-            self.loss += loss(preds, torch.tensor(labels, dtype=torch.float64))
+            self.loss += loss(preds, batch[1])
 
         self.accuracy = self.accuracy / len(dataloader)
         self.loss = self.loss / len(dataloader)
