@@ -213,9 +213,9 @@ class VAEXperiment(pl.LightningModule):
 
     def load_checkpoint(self, path=None):
         from collections import OrderedDict
-        if not path:
-            checkpoint_path = f"{config['logging_params']['save_dir']}" \
-                              f"{config['logging_params']['name']}"
+        if path is None:
+            checkpoint_path = f"{self.log_params['save_dir']}" \
+                              f"{self.log_params['name']}"
             list_of_files = glob.glob(f"{checkpoint_path}/*")
             latest_file = max(list_of_files, key=os.path.getctime)
             checkpoint_path = glob.glob(f"{latest_file}/checkpoints/*")[0]
