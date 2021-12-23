@@ -62,7 +62,8 @@ class VAEXperiment(pl.LightningModule):
         # self.log('loss', outputs[0]['loss'].item(), on_epoch=True, on_step=False)
         self.logger.experiment.add_scalar("Loss/Train", outputs[0]['loss'].item(), self.current_epoch+1)
         if self.current_epoch == 0:
-            sampleImg = torch.rand((self.params['batch_size'], 1, self.params['img_size'], self.params['img_size']))
+            sampleImg = torch.rand((self.params['batch_size'], 1, self.params['img_size'],
+                                    self.params['img_size'])).to(self.device)
             self.logger.experiment.add_graph(self.model, sampleImg)
 
     def validation_step(self, batch, batch_idx, optimizer_idx=0):
