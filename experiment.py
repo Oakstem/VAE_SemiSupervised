@@ -43,7 +43,7 @@ class VAEXperiment(pl.LightningModule):
         self.load_datasets()
 
     def forward(self, input: Tensor, **kwargs) -> Tensor:
-        print('Forward Pass')
+        # print('Forward Pass')
         return self.model(input, **kwargs)
 
     def training_step(self, batch, batch_idx, optimizer_idx = 0):
@@ -58,7 +58,7 @@ class VAEXperiment(pl.LightningModule):
         return train_loss
 
     def training_epoch_end(self, outputs: list):
-        print('Training epoch end')
+        # print('Training epoch end')
         # self.log('loss', outputs[0]['loss'].item(), on_epoch=True, on_step=False)
         self.logger.experiment.add_scalar("Loss/Train", outputs[0]['loss'].item(), self.current_epoch+1)
         # if self.current_epoch == 0:
