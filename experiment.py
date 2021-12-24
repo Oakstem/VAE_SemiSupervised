@@ -32,10 +32,15 @@ class VAEXperiment(pl.LightningModule):
         self.test_dataset = []      # test dataset
         self.num_train_imgs = 0
         self.num_test_imgs = 0
-        self.epoch_loss = dict.fromkeys(('loss','Reconstruction_Loss','KLD','SVM_Accuracy'), 0)
-        self.val_sz = 0.1
+        self.epoch_loss = dict.fromkeys(('loss', 'Reconstruction_Loss', 'KLD', 'SVM_Accuracy'), 0)
+        self.val_sz = 0.01
         self.run = f"-latent_sz:{model_params['latent_dim']}"
-
+        self.checkpoint_callback = ModelCheckpoint(
+            monitor="val_loss",
+            dirpath="checkpoints/",
+            filename="vae-{epoch:02d}-{val_loss:.2f}",
+            mode="min"
+        )
         try:
             self.hold_graph = self.params['retain_first_backpass']
         except:
@@ -79,12 +84,13 @@ class VAEXperiment(pl.LightningModule):
         return val_loss
 
     def validation_epoch_end(self, outputs):
-        # self.log('val_loss', outputs[0]['loss'].item(), on_epoch=True, on_step=False)
+        # logging for checkpoint monitoring
+        self.log('val_loss', outputs[0]['loss'].item(), on_epoch=True, on_step=False)
         self.logger.experiment.add_scalar("Loss/Val", outputs[0]['loss'].item(), self.current_epoch)
         if self.current_epoch % 10 == 0:
             self.sample_images()
 
-        return
+        return {'val_loss': outputs[0]['loss'].item()}
 
     def sample_images(self):
         # Get sample reconstruction image
@@ -234,13 +240,13 @@ class VAEXperiment(pl.LightningModule):
         return self.model
 
 
-
 class SaveCallback(Callback):
     checkpoint_callback = ModelCheckpoint(
         monitor="val_loss",
         dirpath="checkpoints/",
-        filename="vae-{epoch:02d}-{val_loss:.2f}",
-        mode="min"
+        filename="sample-mnist-{epoch:02d}-{val_loss:.2f}",
+        save_top_k=1,
+        mode="min",
     )
 
     def on_train_end(self, trainer, experiment):
