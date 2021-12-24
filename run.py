@@ -1,8 +1,8 @@
 import yaml
 import argparse
 import numpy as np
-
-from models import *
+import torch
+from models import vae_models
 from experiment import VAEXperiment
 from experiment import SaveCallback
 from experiment import get_model_version
@@ -10,6 +10,7 @@ import torch.backends.cudnn as cudnn
 from pytorch_lightning import Trainer
 from pytorch_lightning.loggers import TensorBoardLogger
 from svm.utils import SVMClass
+import common
 
 
 parser = argparse.ArgumentParser(description='Generic runner for VAE models')
@@ -51,29 +52,30 @@ runner = Trainer(default_root_dir=f"{tb_logger.save_dir}",
                  callbacks=[SaveCallback.checkpoint_callback, SaveCallback.checkpoint_callback2, SaveCallback()],
                  **config['trainer_params'])
 #
-print(f"======= Training {config['model_params']['name']} =======")
-runner.fit(experiment)
+# print(f"======= Training {config['model_params']['name']} =======")
+# runner.fit(experiment)
+#
+# print(f"======= Finished Training =======")
 
-print(f"======= Finished Training =======")
+if not common.IN_COLAB:
+    #   Test for 3000 labeled samples
+    import pandas as pd
+    device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
 
-#   Test for 3000 labeled samples
-import pandas as pd
-device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
-
-num_samples = [10, 60, 1000, 3000]
-df = pd.DataFrame(columns=['Samples_num', 'Accuracy', 'Loss'])
-model = torch.load(config['logging_params']['best_model_dir'], map_location=device)
-experiment = VAEXperiment(model, config['exp_params'], config['logging_params'], config['model_params'])
-for samples in num_samples:
-    classifier = SVMClass(model, config['exp_params'])
-    train_dataset = experiment.datasets[0]
-    test_dataset = experiment.test_dataset
-    latent, labels = classifier.gen_latent(train_dataset, samples)
-    classifier.train(latent, labels)
-    classifier.test(test_dataset)
-    print(f"Classifier trained with:{samples} samples, Resulted Accuracy:{100*classifier.accuracy:.0f}%,"
-        f" Loss:{classifier.loss:.2f}")
-    dd = {'Samples_num': samples, 'Accuracy': 100 * classifier.accuracy, 'Loss': classifier.loss.item()}
-    df = df.append(dd, ignore_index=True)
-    df.to_csv('results.csv', index=False)
+    num_samples = [10, 60, 1000, 3000]
+    df = pd.DataFrame(columns=['Samples_num', 'Accuracy', 'Loss'])
+    model = torch.load(config['logging_params']['best_model_dir'], map_location=device)
+    experiment = VAEXperiment(model, config['exp_params'], config['logging_params'], config['model_params'])
+    for samples in num_samples:
+        classifier = SVMClass(model, config['exp_params'])
+        train_dataset = experiment.datasets[0]
+        test_dataset = experiment.test_dataset
+        latent, labels = classifier.gen_latent(train_dataset, samples)
+        classifier.train(latent, labels)
+        classifier.test(test_dataset)
+        print(f"Classifier trained with:{samples} samples, Resulted Accuracy:{100*classifier.accuracy:.0f}%,"
+            f" Loss:{classifier.loss:.2f}")
+        dd = {'Samples_num': samples, 'Accuracy': 100 * classifier.accuracy, 'Loss': classifier.loss.item()}
+        df = df.append(dd, ignore_index=True)
+        df.to_csv('results.csv', index=False)
 

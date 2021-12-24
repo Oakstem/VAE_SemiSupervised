@@ -33,7 +33,7 @@ class VAEXperiment(pl.LightningModule):
         self.num_train_imgs = 0
         self.num_test_imgs = 0
         self.epoch_loss = dict.fromkeys(('loss', 'Reconstruction_Loss', 'KLD', 'SVM_Accuracy'), 0)
-        self.val_sz = 0.01
+        self.val_sz = 0.1
         self.run = f"-latent_sz:{model_params['latent_dim']}"
         self.checkpoint_callback = ModelCheckpoint(
             monitor="val_loss",
@@ -57,7 +57,8 @@ class VAEXperiment(pl.LightningModule):
 
         results = self.forward(real_img, labels = labels)
         train_loss = self.model.loss_function(*results,
-                                              M_N = self.params['batch_size']/self.num_train_imgs,
+                                              # M_N = self.params['batch_size']/self.num_train_imgs,
+                                              M_N = 0.00025,
                                               optimizer_idx=optimizer_idx,
                                               batch_idx = batch_idx)
         return train_loss
@@ -78,7 +79,8 @@ class VAEXperiment(pl.LightningModule):
         results = self.forward(real_img, labels=labels)
 
         val_loss = self.model.loss_function(*results,
-                                            M_N=self.params['batch_size']/self.num_val_imgs,
+                                            # M_N=self.params['batch_size']/self.num_val_imgs,
+                                            M_N=0.00025,
                                             optimizer_idx=optimizer_idx,
                                             batch_idx=batch_idx)
         return val_loss
