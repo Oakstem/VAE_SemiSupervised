@@ -40,13 +40,15 @@ experiment = VAEXperiment(model,
                           config['exp_params'], config['logging_params'], config['model_params'])
 gpus = 1 if torch.cuda.is_available() else []
 config['trainer_params']['gpus'] = gpus
+
+
 runner = Trainer(default_root_dir=f"{tb_logger.save_dir}",
                  min_epochs=1,
                  logger=tb_logger,
                  limit_train_batches=0.01,
                  limit_val_batches=0.1,
                  num_sanity_val_steps=1,
-                 callbacks=[SaveCallback().checkpoint_callback, SaveCallback()],
+                 callbacks=[SaveCallback.checkpoint_callback, SaveCallback.checkpoint_callback2, SaveCallback()],
                  **config['trainer_params'])
 #
 print(f"======= Training {config['model_params']['name']} =======")
@@ -61,7 +63,7 @@ device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cp
 num_samples = [10, 60, 1000, 3000]
 df = pd.DataFrame(columns=['Samples_num', 'Accuracy', 'Loss'])
 model = torch.load(config['logging_params']['best_model_dir'], map_location=device)
-experiment = VAEXperiment(model, config['exp_params'], config['logging_params'])
+experiment = VAEXperiment(model, config['exp_params'], config['logging_params'], config['model_params'])
 for samples in num_samples:
     classifier = SVMClass(model, config['exp_params'])
     train_dataset = experiment.datasets[0]
