@@ -19,6 +19,10 @@ parser.add_argument('--config',  '-c',
                     metavar='FILE',
                     help =  'path to the config file',
                     default='configs/vae.yaml')
+parser.add_argument('--limit',  '-l',
+                    type=float,
+                    help = 'limit dataset length',
+                    default='0.01')
 
 args = parser.parse_args()
 with open(args.filename, 'r') as file:
@@ -46,8 +50,8 @@ config['trainer_params']['gpus'] = gpus
 runner = Trainer(default_root_dir=f"{tb_logger.save_dir}",
                  min_epochs=1,
                  logger=tb_logger,
-                 limit_train_batches=0.01,
-                 limit_val_batches=0.1,
+                 limit_train_batches=args.limit,
+                 limit_val_batches=args.limit,
                  num_sanity_val_steps=1,
                  callbacks=[SaveCallback.checkpoint_callback, SaveCallback.checkpoint_callback2, SaveCallback()],
                  **config['trainer_params'])
