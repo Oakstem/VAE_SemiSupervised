@@ -48,29 +48,30 @@ class VanillaVAE(BaseVAE):
             modules.append(
                 nn.Sequential(
                     nn.ConvTranspose2d(dec_hidden_dim[i],
-                                       dec_hidden_dim[i],
+                                       1,
                                        kernel_size=3,
                                        stride = 2,
                                        padding=1,
                                        output_padding=1),
-                    nn.BatchNorm2d(dec_hidden_dim[i]),
-                    nn.LeakyReLU())
+                    # nn.BatchNorm2d(dec_hidden_dim[i]),
+                    # nn.LeakyReLU())
+                    nn.Softplus())
             )
 
         self.decoder = nn.Sequential(*modules)
 
-        self.final_layer = nn.Sequential(
-                            nn.ConvTranspose2d(dec_hidden_dim[-1],
-                                               dec_hidden_dim[-1],
-                                               kernel_size=3,
-                                               stride=2,
-                                               padding=1,
-                                               output_padding=1),
-                            nn.BatchNorm2d(dec_hidden_dim[-1]),
-                            nn.LeakyReLU(),
-                            nn.Conv2d(dec_hidden_dim[-1], out_channels=1,
-                                      kernel_size=3, stride=2, padding=1),
-                            nn.Tanh())
+        # self.final_layer = nn.Sequential(
+        #                     nn.ConvTranspose2d(dec_hidden_dim[-1],
+        #                                        1,
+        #                                        kernel_size=3,
+        #                                        stride=2,
+        #                                        padding=1,
+        #                                        output_padding=1),
+        #                     # nn.BatchNorm2d(dec_hidden_dim[-1]),
+        #                     # nn.LeakyReLU(),
+        #                     # nn.Conv2d(dec_hidden_dim[-1], out_channels=1,
+        #                     #           kernel_size=3, stride=2, padding=1),
+        #                     nn.Tanh())
 
     def encode(self, input: Tensor) -> List[Tensor]:
         """
@@ -99,7 +100,7 @@ class VanillaVAE(BaseVAE):
         result = self.decoder_input(z)
         result = result.view(-1, 500, 16, 16)
         result = self.decoder(result)
-        result = self.final_layer(result)
+        # result = self.final_layer(result)
         return result
 
     def reparameterize(self, mu: Tensor, logvar: Tensor) -> Tensor:
