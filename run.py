@@ -22,7 +22,7 @@ parser.add_argument('--config',  '-c',
 parser.add_argument('--limit',  '-l',
                     type=float,
                     help = 'limit dataset length',
-                    default='0.01')
+                    default='0.07')
 
 args = parser.parse_args()
 with open(args.filename, 'r') as file:
@@ -56,10 +56,10 @@ runner = Trainer(default_root_dir=f"{tb_logger.save_dir}",
                  callbacks=[SaveCallback.checkpoint_callback, SaveCallback.checkpoint_callback2, SaveCallback()],
                  **config['trainer_params'])
 #
-# print(f"======= Training {config['model_params']['name']} =======")
-# runner.fit(experiment)
-#
-# print(f"======= Finished Training =======")
+print(f"======= Training {config['model_params']['name']} =======")
+runner.fit(experiment)
+
+print(f"======= Finished Training =======")
 
 if not common.IN_COLAB:
     #   Test for 3000 labeled samples

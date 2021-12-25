@@ -115,7 +115,7 @@ class VAEXperiment(pl.LightningModule):
 
         optimizer = optim.Adam(self.model.parameters(),
                                lr=self.params['LR'],
-                               weight_decay=self.params['weight_decay'])
+                               weight_decay=np.double(self.params['weight_decay']))
         optims.append(optimizer)
         # Check if more than 1 optimizer is required (Used for adversarial training)
         try:
