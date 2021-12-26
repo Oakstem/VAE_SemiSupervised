@@ -9,7 +9,7 @@ exp_params:
   img_size: 32
   batch_size: 64
   LR: 0.0001
-  weight_decay: 1e-4
+  weight_decay: 0
   scheduler_gamma: 0.95
 
 trainer_params:

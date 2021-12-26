@@ -22,7 +22,7 @@ parser.add_argument('--config',  '-c',
 parser.add_argument('--limit',  '-l',
                     type=float,
                     help = 'limit dataset length',
-                    default='0.07')
+                    default='0.05')
 
 args = parser.parse_args()
 with open(args.filename, 'r') as file:
