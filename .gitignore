@@ -11,3 +11,5 @@ assets/
 logs/
 tests/
 *.ckpt
+*.model
+*.model
