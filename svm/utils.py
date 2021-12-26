@@ -1,4 +1,5 @@
 from sklearn import svm
+from sklearn.metrics import log_loss
 import torch
 from torch.utils.data import DataLoader
 
@@ -55,9 +56,10 @@ class SVMClass():
             latent_vec = self.model.reparameterize(mu, log_var).detach().tolist()
             labels = batch[1].tolist()
 
-            preds = torch.as_tensor(self.svm.predict_proba(latent_vec))
+            # preds = torch.as_tensor(self.svm.predict_proba(latent_vec))
             self.accuracy += self.svm.score(latent_vec, labels)
-            self.loss += loss(preds, batch[1])
+            # self.loss += loss(preds, batch[1])
+            self.loss += log_loss(labels, self.svm.predict_proba(latent_vec))
 
         self.accuracy = self.accuracy / len(dataloader)
         self.loss = self.loss / len(dataloader)
