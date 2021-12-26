@@ -21,7 +21,7 @@ class SVMClass():
         self.model.eval()
         latent_vec = torch.empty(0).to(self.device)
         labels = torch.empty(0).to(self.device)
-        dataloader = DataLoader(dataset, batch_size=self.params['batch_size'], shuffle = False, drop_last=True)
+        dataloader = DataLoader(dataset, batch_size=1, shuffle=False, drop_last=False)
         for idx, batch in enumerate(dataloader):
             batch[0] = batch[0].to(self.device)
             batch[1] = batch[1].to(self.device)
