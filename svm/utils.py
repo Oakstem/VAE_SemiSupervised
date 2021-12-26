@@ -22,4 +22,3 @@ class subMNIST(FashionMNIST):
             return self.k
         else:
             return 10000
-

@@ -12,3 +12,4 @@ logs/
 tests/
 *.model
 *.ckpt
+trained_models/

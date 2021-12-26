@@ -5,7 +5,6 @@ import sklearn.utils.validation as check
 from torch import optim
 from models import BaseVAE
 from models.types_ import *
-from utils import data_loader
 import pytorch_lightning as pl
 from torchvision import transforms
 import torchvision.utils as vutils
@@ -14,6 +13,26 @@ from torch.utils.data import DataLoader
 from torch.utils.data import random_split
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.callbacks import Callback
+
+
+## Utils to handle newer PyTorch Lightning changes from version 0.6
+## ==================================================================================================== ##
+
+def data_loader(fn):
+    """
+    Decorator to handle the deprecation of data_loader from 0.7
+    :param fn: User defined data loader function
+    :return: A wrapper for the data_loader function
+    """
+
+    def func_wrapper(self):
+        try: # Works for version 0.6.0
+            return pl.data_loader(fn)(self)
+
+        except: # Works for version > 0.6.0
+            return fn(self)
+
+    return func_wrapper
 
 
 class VAEXperiment(pl.LightningModule):
@@ -266,4 +285,5 @@ def get_model_version(params: dict):
     path = f"run-latent_sz_{params['model_params']['latent_dim']}"
     # path = "logs/"
     return path
+
 

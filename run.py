@@ -2,6 +2,7 @@ import yaml
 import argparse
 import numpy as np
 import torch
+import utils
 from models import vae_models
 from experiment import VAEXperiment
 from experiment import SaveCallback
@@ -10,6 +11,8 @@ import torch.backends.cudnn as cudnn
 from pytorch_lightning import Trainer
 from pytorch_lightning.loggers import TensorBoardLogger
 from svm.svm_model import SVMClass
+from svm.svm_model import run_svm_tests
+from svm.svm_model import run_svm_train
 import common
 
 
@@ -67,13 +70,16 @@ if args.train:
     print(f"======= Training {config['model_params']['name']} =======")
     runner.fit(experiment)
     print(f"======= Finished Training =======")
+
 else:
     if not common.IN_COLAB:
+        # run_svm_train(args, config)
+        run_svm_tests(args, config)
         #   Test for 3000 labeled samples
         import pandas as pd
         device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
 
-        num_samples = [10, 60, 1000, 3000]
+        num_samples = [60, 1000, 3000]
         df = pd.DataFrame(columns=['Samples_num', 'Accuracy', 'Loss'])
         model = vae_models[args.model](**config['model_params'])
         experiment = VAEXperiment(model, config['exp_params'], config['logging_params'], config['model_params'])
@@ -92,4 +98,5 @@ else:
             dd = {'Samples_num': samples, 'Accuracy': 100 * classifier.accuracy, 'Loss': classifier.loss.item()}
             df = df.append(dd, ignore_index=True)
             df.to_csv('results.csv', index=False)
+            pickle.dump(classifier.svm, open(f"trained_models/svm_{samples}_samples", 'wb'))
 
