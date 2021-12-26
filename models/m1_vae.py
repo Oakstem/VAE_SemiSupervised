@@ -5,13 +5,13 @@ from torch.nn import functional as F
 from .types_ import *
 
 
-class M1_vae(BaseVAE):
+class M1_VAE(BaseVAE):
     def __init__(self,
                  in_channels: int,
                  latent_dim: int,
                  hidden_dims: List = None,
                  **kwargs) -> None:
-        super(M1_vae, self).__init__()
+        super(M1_VAE, self).__init__()
         self.save_hyperparameters()
         self.latent_dim = latent_dim
 

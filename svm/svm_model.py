@@ -1,8 +1,13 @@
 import torch
+import numpy as np
+from utils import subMNIST
 from models import BaseVAE
 from torch import nn
 from torch.nn import functional as F
-from .types_ import *
+from sklearn import svm
+from sklearn.metrics import log_loss
+from torch.utils.data import DataLoader
+# from .types_ import *
 
 
 class SVMClass():
@@ -11,7 +16,7 @@ class SVMClass():
                  params: dict) -> None:
 
         self.model = vae_model
-        self.svm = svm.SVC(probability=True)
+        self.svm = svm.SVC(kernel='rbf', probability=True)
         self.params = params
         self.accuracy = 0
         self.loss = 0
@@ -22,19 +27,19 @@ class SVMClass():
         self.model.eval()
         latent_vec = torch.empty(0).to(self.device)
         labels = torch.empty(0).to(self.device)
-        dataloader = DataLoader(dataset, batch_size=1, shuffle=False, drop_last=False)
+        # dataloader = DataLoader(dataset, batch_size=1, shuffle=False, drop_last=False)
 
         train_label_index = []
         valid_label_index = []
         samples_per_class = np.int(num_samples/10)
         for i in range(10):
-            train_label_list = dataset.dataset.train_labels.numpy()
+            train_label_list = dataset.dataset.targets.numpy()
             label_index = np.where(train_label_list == i)[0]
             label_subindex = list(label_index[:samples_per_class])
             train_label_index += label_subindex
 
-        trainset_np = dataset.dataset.train_data.numpy()
-        trainset_label_np = dataset.dataset.train_labels.numpy()
+        trainset_np = dataset.dataset.data.numpy()
+        trainset_label_np = dataset.dataset.targets.numpy()
         train_data_sub = torch.from_numpy(trainset_np[train_label_index])
         train_labels_sub = torch.from_numpy(trainset_label_np[train_label_index])
 
@@ -53,20 +58,17 @@ class SVMClass():
 
         return latent_vec, labels
 
-    def train(self, latent_vec, labels):
+    def train(self, latent_vec: torch.tensor, labels: torch.tensor):
         # Training SVM
         x = latent_vec.detach()
         y = labels.detach()
         self.svm = self.svm.fit(x, y)
 
-    def test(self, test_dataset):
+    def test(self, test_dataset: object):
         # Testing with SVM
-        latent_vec = torch.empty(0).to(self.device)
-        labels = torch.empty(0).to(self.device)
 
         self.model.eval()
         dataloader = DataLoader(test_dataset, batch_size=256, shuffle=False, drop_last=True)
-        loss = torch.nn.CrossEntropyLoss()
 
         for idx, batch in enumerate(dataloader):
             batch[0] = batch[0].to(self.device)
@@ -76,13 +78,8 @@ class SVMClass():
             latent_vec = self.model.reparameterize(mu, log_var).detach().tolist()
             labels = batch[1].tolist()
 
-            # preds = torch.as_tensor(self.svm.predict_proba(latent_vec))
             self.accuracy += self.svm.score(latent_vec, labels)
-            # self.loss += loss(preds, batch[1])
             y_pred = self.svm.predict_proba(latent_vec)
-            print(idx)
-            if idx == 38:
-                stop = 1
             self.loss += log_loss(labels, y_pred)
 
         self.accuracy = self.accuracy / len(dataloader)
