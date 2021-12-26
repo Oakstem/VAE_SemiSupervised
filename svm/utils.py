@@ -66,7 +66,7 @@ class SVMClass():
         labels = torch.empty(0).to(self.device)
 
         self.model.eval()
-        dataloader = DataLoader(test_dataset, batch_size=self.params['batch_size'], shuffle=False, drop_last=True)
+        dataloader = DataLoader(test_dataset, batch_size=256, shuffle=False, drop_last=True)
         loss = torch.nn.CrossEntropyLoss()
 
         for idx, batch in enumerate(dataloader):
@@ -80,7 +80,11 @@ class SVMClass():
             # preds = torch.as_tensor(self.svm.predict_proba(latent_vec))
             self.accuracy += self.svm.score(latent_vec, labels)
             # self.loss += loss(preds, batch[1])
-            self.loss += log_loss(labels, self.svm.predict_proba(latent_vec))
+            y_pred = self.svm.predict_proba(latent_vec)
+            print(idx)
+            if idx == 38:
+                stop = 1
+            self.loss += log_loss(labels, y_pred)
 
         self.accuracy = self.accuracy / len(dataloader)
         self.loss = self.loss / len(dataloader)
