@@ -59,18 +59,18 @@ class VanillaVAE(BaseVAE):
         #     )
 
         # self.decoder = nn.Sequential(*modules)
-        # self.decoder_output = nn.Linear(dec_hidden_dim[i]*64*64, 32*32)
+        self.decoder_output = nn.Linear(dec_hidden_dim[0]*32*32, 32*32)
         self.final_layer = nn.Sequential(
-                            nn.ConvTranspose2d(dec_hidden_dim[-1],
-                                               dec_hidden_dim[-1],
-                                               kernel_size=3,
-                                               stride=2,
-                                               padding=1,
-                                               output_padding=1),
-                            nn.BatchNorm2d(dec_hidden_dim[-1]),
-                            nn.LeakyReLU(),
-                            nn.Conv2d(dec_hidden_dim[-1], out_channels=1,
-                                      kernel_size=3, stride=2, padding=1),
+                            # nn.ConvTranspose2d(dec_hidden_dim[-1],
+                            #                    dec_hidden_dim[-1],
+                            #                    kernel_size=3,
+                            #                    stride=2,
+                            #                    padding=1,
+                            #                    output_padding=1),
+                            # nn.BatchNorm2d(dec_hidden_dim[-1]),
+                            # nn.LeakyReLU(),
+                            nn.Conv2d(dec_hidden_dim[-1], out_channels=dec_hidden_dim[-1],
+                                      kernel_size=3, stride=1, padding=1),
                             nn.Tanh())
 
     def encode(self, input: Tensor) -> List[Tensor]:
@@ -101,7 +101,9 @@ class VanillaVAE(BaseVAE):
         result = result.view(-1, 500, 32, 32)
         # result = self.decoder(result)
         result = self.final_layer(result)
-        # result = self.decoder_output(result)
+        result = torch.flatten(result, start_dim=1)
+        result = self.decoder_output(result)
+        result = result.view(-1, 1, 32, 32)
         return result
 
     def reparameterize(self, mu: Tensor, logvar: Tensor) -> Tensor:
