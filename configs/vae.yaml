@@ -1,15 +1,15 @@
 model_params:
   name: 'VanillaVAE'
   in_channels: 1
-  latent_dim: 30
+  latent_dim: 50
 
 exp_params:
   dataset: mnist
-  data_path: "../../shared/Data/"
+  data_path: "Data/"
   img_size: 32
-  batch_size: 144 # Better to have a square number
+  batch_size: 64
   LR: 0.005
-  weight_decay: 0.0
+  weight_decay: 0.0001
   scheduler_gamma: 0.95
 
 trainer_params:

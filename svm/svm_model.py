@@ -10,8 +10,9 @@ from sklearn.metrics import log_loss
 from torch.utils.data import DataLoader
 from models import vae_models
 from experiment import VAEXperiment
-
-# from .types_ import *
+import pandas as pd
+from utils import get_config
+from utils import parse_args
 
 
 class SVMClass():
@@ -94,9 +95,10 @@ class SVMClass():
         self.loss = self.loss / len(dataloader)
 
 
-def run_svm_tests(args, config):
-    import pandas as pd
+def run_svm_tests():
+    args = parse_args()
     # num_samples = [100, 600, 1000, 3000]
+    config = get_config(args)
     num_samples = [100, 600]
     df = pd.DataFrame(columns=['Samples_num', 'Accuracy', 'Loss'])
     model = torch.load(f"trained_models/best_{args.model}.model")
@@ -107,16 +109,17 @@ def run_svm_tests(args, config):
         classifier = SVMClass(model, config, svm_model)
         test_dataset = experiment.test_dataset
         classifier.test(test_dataset)
-        print(f"Classifier trained with:{samples} samples, Resulted Accuracy:{100*classifier.accuracy:.0f}%,"
+        print(f"Classifier test result with:{samples} samples, Accuracy:{100*classifier.accuracy:.0f}%,"
             f" Loss:{classifier.loss:.2f}")
         dd = {'Samples_num': samples, 'Accuracy': 100 * classifier.accuracy, 'Loss': classifier.loss.item()}
         df = df.append(dd, ignore_index=True)
         df.to_csv(f'logs/classifiers/class_result_{args.model}_model.csv', index=False)
 
 
-def run_svm_train(args, config):
-    import pandas as pd
+def run_svm_train():
+    args = parse_args()
     # num_samples = [100, 600, 1000, 3000]
+    config = get_config(args)
     num_samples = [100, 600]
     model = torch.load(f"trained_models/best_{args.model}.model")
     experiment = VAEXperiment(model, config['exp_params'], config['logging_params'], config['model_params'])
