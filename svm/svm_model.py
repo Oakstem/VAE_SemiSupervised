@@ -69,8 +69,8 @@ class SVMClass():
 
     def train(self, latent_vec: torch.tensor, labels: torch.tensor):
         # Training SVM
-        x = latent_vec.detach()
-        y = labels.detach()
+        x = latent_vec.cpu().detach().numpy()
+        y = labels.cpu().detach().numpy()
         self.svm = self.svm.fit(x, y)
 
     def test(self, test_dataset: object):

@@ -1,5 +1,6 @@
 import math
 import torch
+import torchvision
 import numpy as np
 import sklearn.utils.validation as check
 from torch import optim
@@ -76,20 +77,13 @@ class VAEXperiment(pl.LightningModule):
 
         results = self.forward(real_img, labels = labels)
         train_loss = self.model.loss_function(*results,
-                                              # M_N = self.params['batch_size']/self.num_train_imgs,
-                                              M_N = 0.00025,
+                                              M_N = self.params['kld_weight'],
                                               optimizer_idx=optimizer_idx,
                                               batch_idx = batch_idx)
         return train_loss
 
     def training_epoch_end(self, outputs: list):
-        # print('Training epoch end')
-        # self.log('loss', outputs[0]['loss'].item(), on_epoch=True, on_step=False)
         self.logger.experiment.add_scalar("Loss/Train", outputs[0]['loss'].item(), self.current_epoch+1)
-        # if self.current_epoch == 0:
-        #     sampleImg = torch.rand((self.params['batch_size'], 1, self.params['img_size'],
-        #                             self.params['img_size'])).to(self.device)
-        #     self.logger.experiment.add_graph(self.model, sampleImg)
 
     def validation_step(self, batch, batch_idx, optimizer_idx=0):
         real_img, labels = batch
@@ -98,17 +92,19 @@ class VAEXperiment(pl.LightningModule):
         results = self.forward(real_img, labels=labels)
 
         val_loss = self.model.loss_function(*results,
-                                            # M_N=self.params['batch_size']/self.num_val_imgs,
-                                            M_N=0.00025,
+                                            M_N= self.params['kld_weight'],
                                             optimizer_idx=optimizer_idx,
                                             batch_idx=batch_idx)
+        if self.current_epoch == 0:
+            self.logger.experiment.add_graph(self.model, real_img)
+
         return val_loss
 
     def validation_epoch_end(self, outputs):
         # logging for checkpoint monitoring
         self.log('val_loss', outputs[0]['loss'].item(), on_epoch=True, on_step=False)
         self.logger.experiment.add_scalar("Loss/Val", outputs[0]['loss'].item(), self.current_epoch)
-        if self.current_epoch % 10 == 0:
+        if self.current_epoch % 5 == 0:
             self.sample_images()
 
         return {'val_loss': outputs[0]['loss'].item()}
@@ -124,8 +120,10 @@ class VAEXperiment(pl.LightningModule):
                           f"recons_{self.logger.name}_{self.current_epoch}.png",
                           normalize=True,
                           nrow=12)
+        img_grid = torchvision.utils.make_grid(recons)
+        self.logger.experiment.add_image('Encoder generated images', img_grid)
 
-        del test_input, recons #, samples
+        del test_input, recons
 
     def configure_optimizers(self):
 
@@ -231,7 +229,7 @@ class VAEXperiment(pl.LightningModule):
 
         if self.params['dataset'] == 'mnist':
             transform = transforms.Compose([transforms.ToTensor(),
-                                            transforms.Normalize((0.5,), (0.5,)),
+                                            transforms.Normalize((0.3,), (0.3,)),
                                             transforms.Resize(self.params['img_size'])
                                             ])
         else:

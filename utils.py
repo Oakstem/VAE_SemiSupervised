@@ -12,7 +12,7 @@ from torchvision.datasets import FashionMNIST
 class subMNIST(FashionMNIST):
     def __init__(self, root, train=True, target_transform=None, download=False, k=3000):
         transform = transforms.Compose([transforms.ToTensor(),
-                                        transforms.Normalize((0.5,), (0.5,)),
+                                        transforms.Normalize((0.3,), (0.3,)),
                                         transforms.Resize(32)
                                         ])
         super(subMNIST, self).__init__(root, train, transform, target_transform, download)
@@ -41,11 +41,11 @@ def parse_args():
                         dest="filename",
                         metavar='FILE',
                         help='path to the config file',
-                        default='configs/vae.yaml')
+                        default='vae')
     parser.add_argument('--limit', '-l',
                         type=float,
                         help='limit dataset length',
-                        default='0.01')
+                        default='0.05')
     parser.add_argument('--model', '-m',
                         type=str,
                         help='model name',
