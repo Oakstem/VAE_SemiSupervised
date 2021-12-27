@@ -27,10 +27,10 @@ def data_loader(fn):
     """
 
     def func_wrapper(self):
-        try: # Works for version 0.6.0
+        try:  # Works for version 0.6.0
             return pl.data_loader(fn)(self)
 
-        except: # Works for version > 0.6.0
+        except:  # Works for version > 0.6.0
             return fn(self)
 
     return func_wrapper
@@ -48,8 +48,8 @@ class VAEXperiment(pl.LightningModule):
         self.log_params = log_params
         self.curr_device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
         self.hold_graph = False
-        self.datasets = []      # train&val datasets
-        self.test_dataset = []      # test dataset
+        self.datasets = []  # train&val datasets
+        self.test_dataset = []  # test dataset
         self.num_train_imgs = 0
         self.num_test_imgs = 0
         self.epoch_loss = dict.fromkeys(('loss', 'Reconstruction_Loss', 'KLD', 'SVM_Accuracy'), 0)
@@ -71,19 +71,19 @@ class VAEXperiment(pl.LightningModule):
         # print('Forward Pass')
         return self.model(input, **kwargs)
 
-    def training_step(self, batch, batch_idx, optimizer_idx = 0):
+    def training_step(self, batch, batch_idx, optimizer_idx=0):
         real_img, labels = batch
         self.curr_device = real_img.device
 
-        results = self.forward(real_img, labels = labels)
+        results = self.forward(real_img, labels=labels)
         train_loss = self.model.loss_function(*results,
-                                              M_N = self.params['kld_weight'],
+                                              M_N=self.params['kld_weight'],
                                               optimizer_idx=optimizer_idx,
-                                              batch_idx = batch_idx)
+                                              batch_idx=batch_idx)
         return train_loss
 
     def training_epoch_end(self, outputs: list):
-        self.logger.experiment.add_scalar("Loss/Train", outputs[0]['loss'].item(), self.current_epoch+1)
+        self.logger.experiment.add_scalar("Loss/Train", outputs[0]['loss'].item(), self.current_epoch + 1)
 
     def validation_step(self, batch, batch_idx, optimizer_idx=0):
         real_img, labels = batch
@@ -92,7 +92,7 @@ class VAEXperiment(pl.LightningModule):
         results = self.forward(real_img, labels=labels)
 
         val_loss = self.model.loss_function(*results,
-                                            M_N= self.params['kld_weight'],
+                                            M_N=self.params['kld_weight'],
                                             optimizer_idx=optimizer_idx,
                                             batch_idx=batch_idx)
         if self.current_epoch == 0:
@@ -114,12 +114,12 @@ class VAEXperiment(pl.LightningModule):
         test_input, test_label = next(iter(self.sample_dataloader))
         test_input = test_input.to(self.curr_device)
         test_label = test_label.to(self.curr_device)
-        recons = self.model.generate(test_input, labels = test_label)
+        recons = self.model.generate(test_input, labels=test_label)
         vutils.save_image(recons.data,
                           f"{self.logger.save_dir}/{self.logger.name}/version_{self.logger.version}/"
                           f"recons_{self.logger.name}_{self.current_epoch}.png",
                           normalize=True,
-                          nrow=12)
+                          nrow=8)
         img_grid = torchvision.utils.make_grid(recons)
         self.logger.experiment.add_image('Encoder generated images', img_grid)
 
@@ -137,7 +137,7 @@ class VAEXperiment(pl.LightningModule):
         # Check if more than 1 optimizer is required (Used for adversarial training)
         try:
             if self.params['LR_2'] is not None:
-                optimizer2 = optim.Adam(getattr(self.model,self.params['submodel']).parameters(),
+                optimizer2 = optim.Adam(getattr(self.model, self.params['submodel']).parameters(),
                                         lr=self.params['LR_2'])
                 optims.append(optimizer2)
         except:
@@ -146,14 +146,14 @@ class VAEXperiment(pl.LightningModule):
         try:
             if self.params['scheduler_gamma'] is not None:
                 scheduler = optim.lr_scheduler.ExponentialLR(optims[0],
-                                                             gamma = self.params['scheduler_gamma'])
+                                                             gamma=self.params['scheduler_gamma'])
                 scheds.append(scheduler)
 
                 # Check if another scheduler is required for the second optimizer
                 try:
                     if self.params['scheduler_gamma_2'] is not None:
                         scheduler2 = optim.lr_scheduler.ExponentialLR(optims[1],
-                                                                      gamma = self.params['scheduler_gamma_2'])
+                                                                      gamma=self.params['scheduler_gamma_2'])
                         scheds.append(scheduler2)
                 except:
                     pass
@@ -163,13 +163,7 @@ class VAEXperiment(pl.LightningModule):
 
     @data_loader
     def train_dataloader(self):
-        transform = self.data_transforms()
-
-        if self.params['dataset'] == 'mnist':
-            dataset = self.datasets[0]
-        else:
-            raise ValueError('Undefined dataset type')
-
+        dataset = self.datasets[0]
         self.num_train_imgs = len(dataset)
         return DataLoader(dataset,
                           batch_size=self.params['batch_size'],
@@ -178,38 +172,24 @@ class VAEXperiment(pl.LightningModule):
 
     @data_loader
     def test_dataloader(self):
-        transform = self.data_transforms()
-
-        if self.params['dataset'] == 'mnist':
-            dataset = FashionMNIST(root=self.params['data_path'],
-                                         train=False,
-                                         transform=transform,
-                                         download=True)
-        else:
-            raise ValueError('Undefined dataset type')
-
-        self.num_test_imgs = len(dataset)
-        return DataLoader(dataset,
+        return DataLoader(self.test_dataset,
                           batch_size=self.params['batch_size'],
                           shuffle=True,
                           drop_last=True)
 
     @data_loader
     def val_dataloader(self):
-        if self.params['dataset'] == 'mnist':
-            self.sample_dataloader = DataLoader(self.datasets[1],
-                                                 batch_size=144,
-                                                 shuffle=False,
-                                                 drop_last=True)
-            self.num_val_imgs = len(self.datasets[1])
-        else:
-            raise ValueError('Undefined dataset type')
+        self.sample_dataloader = DataLoader(self.datasets[1],
+                                            batch_size=self.params['batch_size'],
+                                            shuffle=False,
+                                            drop_last=True)
+        self.num_val_imgs = len(self.datasets[1])
 
         return self.sample_dataloader
 
     def load_datasets(self):
         transform = self.data_transforms()
-        if self.params['dataset'] == 'mnist':
+        if self.params['dataset'] == 'fmnist':
             mnist_dataset = FashionMNIST(root=self.params['data_path'],
                                          train=True,
                                          transform=transform,
@@ -222,14 +202,32 @@ class VAEXperiment(pl.LightningModule):
                                              train=False,
                                              transform=transform,
                                              download=True)
+        elif self.params['dataset'] == 'mnist':
+            mnist_dataset = MNIST(root=self.params['data_path'],
+                                  train=True,
+                                  transform=transform,
+                                  download=True)
+            val_samples = np.round(len(mnist_dataset) * self.val_sz).astype(int)
+            train_samples = len(mnist_dataset) - val_samples
+            self.datasets = random_split(mnist_dataset, [train_samples, val_samples],
+                                         generator=torch.Generator().manual_seed(42))
+            self.test_dataset = MNIST(root=self.params['data_path'],
+                                      train=False,
+                                      transform=transform,
+                                      download=True)
 
     def data_transforms(self):
         # SetRange = transforms.Lambda(lambda X: 2 * X - 1.)
         # SetScale = transforms.Lambda(lambda X: X/X.sum(0).expand_as(X))
 
-        if self.params['dataset'] == 'mnist':
+        if self.params['dataset'] == 'fmnist':
             transform = transforms.Compose([transforms.ToTensor(),
                                             transforms.Normalize((0.3,), (0.3,)),
+                                            transforms.Resize(self.params['img_size'])
+                                            ])
+        elif self.params['dataset'] == 'mnist':
+            transform = transforms.Compose([transforms.ToTensor(),
+                                            transforms.Normalize((0.5,), (0.5,)),
                                             transforms.Resize(self.params['img_size'])
                                             ])
         else:
@@ -283,5 +281,3 @@ def get_model_version(params: dict):
     path = f"run-latent_sz_{params['model_params']['latent_dim']}"
     # path = "logs/"
     return path
-
-
