@@ -95,17 +95,17 @@ class SVMClass():
         self.loss = self.loss / len(dataloader)
 
 
-def run_svm_tests():
-    args = parse_args()
+def run_svm_tests(model_name: str, config_file: str):
+    # args = parse_args()
     # num_samples = [100, 600, 1000, 3000]
-    config = get_config(args)
+    config = get_config(config_file)
     num_samples = [100, 600]
     df = pd.DataFrame(columns=['Samples_num', 'Accuracy', 'Loss'])
-    model = torch.load(f"trained_models/best_{args.model}.model")
+    model = torch.load(f"trained_models/best_{model_name}.model")
     experiment = VAEXperiment(model, config['exp_params'], config['logging_params'], config['model_params'])
 
     for samples in num_samples:
-        svm_model = pickle.load(open(f"trained_models/{args.model}_svm_{samples}_samples", 'rb'))
+        svm_model = pickle.load(open(f"trained_models/{model_name}_svm_{samples}_samples", 'rb'))
         classifier = SVMClass(model, config, svm_model)
         test_dataset = experiment.test_dataset
         classifier.test(test_dataset)
@@ -113,7 +113,7 @@ def run_svm_tests():
             f" Loss:{classifier.loss:.2f}")
         dd = {'Samples_num': samples, 'Accuracy': 100 * classifier.accuracy, 'Loss': classifier.loss.item()}
         df = df.append(dd, ignore_index=True)
-        df.to_csv(f'logs/classifiers/class_result_{args.model}_model.csv', index=False)
+        df.to_csv(f'logs/classifiers/class_result_{model_name}_model.csv', index=False)
 
 
 def run_svm_train():
@@ -121,7 +121,7 @@ def run_svm_train():
     # num_samples = [100, 600, 1000, 3000]
     config = get_config(args)
     num_samples = [100, 600]
-    model = torch.load(f"trained_models/best_{args.model}.model")
+    model = torch.load(f"trained_models/best_{model_name}.model")
     experiment = VAEXperiment(model, config['exp_params'], config['logging_params'], config['model_params'])
 
     for samples in num_samples:
@@ -129,6 +129,6 @@ def run_svm_train():
         train_dataset = experiment.datasets[0]
         latent, labels = classifier.gen_latent(train_dataset, samples)
         classifier.train(latent, labels)
-        path = f"trained_models/{args.model}_svm_{samples}_samples"
+        path = f"trained_models/{model_name}_svm_{samples}_samples"
         pickle.dump(classifier.svm, open(path, 'wb'))
         print(f"Classifier trained with:{samples} samples, saved at {path}")

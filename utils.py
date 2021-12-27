@@ -25,8 +25,8 @@ class subMNIST(FashionMNIST):
             return 10000
 
 
-def get_config(args: dict):
-    with open(args.filename, 'r') as file:
+def get_config(filename: str):
+    with open(f"configs/{filename}", 'r') as file:
         try:
             config = yaml.safe_load(file)
         except yaml.YAMLError as exc:
