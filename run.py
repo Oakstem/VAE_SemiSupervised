@@ -25,7 +25,7 @@ np.random.seed(config['logging_params']['manual_seed'])
 cudnn.deterministic = True
 cudnn.benchmark = False
 
-model = vae_models[args.model](**config['model_params'])
+model = vae_models[args.model](**config['model_params'], **config['exp_params'])
 experiment = VAEXperiment(model,
                           config['exp_params'], config['logging_params'], config['model_params'])
 gpus = 1 if torch.cuda.is_available() else []

@@ -14,46 +14,53 @@ class M1_VAE(BaseVAE):
         super(M1_VAE, self).__init__()
         self.save_hyperparameters()
         self.latent_dim = latent_dim
+        self.img_sz = kwargs['img_size']
 
         modules = []
-        if hidden_dims is None:
-            hidden_dims = [600, 600]
-            dec_hidden_dim = [500]
+        # if hidden_dims is None:
+        hidden_dims = [600, 600]
+        dec_hidden_dims = [500]
 
         # Build Encoder
-        for h_dim in hidden_dims:
-            modules.append(
-                nn.Sequential(
-                    nn.Conv2d(in_channels, out_channels=h_dim,
-                              kernel_size= 3, stride= 2, padding  = 1),
-                    nn.BatchNorm2d(h_dim),
-                    nn.LeakyReLU())
-            )
-            in_channels = h_dim
 
-        self.encoder = nn.Sequential(*modules)
-        self.fc_mu = nn.Linear(hidden_dims[-1]*8*8, latent_dim)
-        self.fc_var = nn.Linear(hidden_dims[-1]*8*8, latent_dim)
+        self.encoder = nn.Sequential(
+                nn.Linear(self.img_sz**2, hidden_dims[0]),
+                nn.LeakyReLU(),
+                nn.Linear(hidden_dims[0], hidden_dims[1]),
+                nn.LeakyReLU(),
+            )
+
+
+            # in_channels = h_dim
+
+        # self.encoder = nn.Sequential()
+        self.fc_mu = nn.Linear(hidden_dims[-1], latent_dim)
+        self.fc_var = nn.Linear(hidden_dims[-1], latent_dim)
 
 
         # Build Decoder
         modules = []
 
-        self.decoder_input = nn.Linear(latent_dim, dec_hidden_dim[-1] * 16 * 16)
+        self.decoder_input = nn.Linear(latent_dim, dec_hidden_dims[-1])
 
         hidden_dims.reverse()
         self.final_layer = nn.Sequential(
-                            nn.ConvTranspose2d(dec_hidden_dim[-1],
-                                               dec_hidden_dim[-1],
-                                               kernel_size=3,
-                                               stride=2,
-                                               padding=1,
-                                               output_padding=1),
-                            nn.BatchNorm2d(dec_hidden_dim[-1]),
+                            # nn.ConvTranspose2d(dec_hidden_dims[-1],
+                            #                    dec_hidden_dims[-1],
+                            #                    kernel_size=3,
+                            #                    stride=2,
+                            #                    padding=1,
+                            #                    output_padding=1),
+                            # nn.BatchNorm2d(dec_hidden_dims[-1]),
+                            # nn.LeakyReLU(),
+                            # nn.Conv2d(dec_hidden_dims[-1], out_channels=1,
+                            #           kernel_size=3, stride=1, padding=1),
+                            # nn.Tanh())
+                            nn.Linear(dec_hidden_dims[0], dec_hidden_dims[0]),
                             nn.LeakyReLU(),
-                            nn.Conv2d(dec_hidden_dim[-1], out_channels=1,
-                                      kernel_size=3, stride=1, padding=1),
-                            nn.Tanh())
+                            nn.Linear(dec_hidden_dims[0], self.img_sz**2),
+                            nn.LeakyReLU())
+
 
     def encode(self, input: Tensor) -> List[Tensor]:
         """
@@ -62,7 +69,8 @@ class M1_VAE(BaseVAE):
         :param input: (Tensor) Input tensor to encoder [N x C x H x W]
         :return: (Tensor) List of latent codes
         """
-        result = self.encoder(input)
+        result = torch.flatten(input, start_dim=1)
+        result = self.encoder(result)
         result = torch.flatten(result, start_dim=1)
 
         # Split the result into mu and var components
@@ -80,8 +88,10 @@ class M1_VAE(BaseVAE):
         :return: (Tensor) [B x C x H x W]
         """
         result = self.decoder_input(z)
-        result = result.view(-1, 500, 16, 16)
+        # result = result.view(-1, 500, 16, 16)
         result = self.final_layer(result)
+        result = result.view(-1, 1, self.img_sz, self.img_sz)
+
         return result
 
     def reparameterize(self, mu: Tensor, logvar: Tensor) -> Tensor:
