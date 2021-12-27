@@ -97,9 +97,8 @@ class SVMClass():
 
 def run_svm_tests(model_name: str, config_file: str):
     # args = parse_args()
-    # num_samples = [100, 600, 1000, 3000]
+    num_samples = [100, 600, 1000, 3000]
     config = get_config(config_file)
-    num_samples = [100, 600]
     df = pd.DataFrame(columns=['Samples_num', 'Accuracy', 'Loss'])
     model = torch.load(f"trained_models/{model_name}.model")
     experiment = VAEXperiment(model, config['exp_params'], config['logging_params'], config['model_params'])
@@ -116,12 +115,11 @@ def run_svm_tests(model_name: str, config_file: str):
         df.to_csv(f'logs/classifiers/class_result_{model_name}_model.csv', index=False)
 
 
-def run_svm_train():
-    args = parse_args()
-    # num_samples = [100, 600, 1000, 3000]
+def run_svm_train(model_name: str, config_file: str):
+    # args = parse_args()
+    num_samples = [100, 600, 1000, 3000]
     config = get_config(args)
-    num_samples = [100, 600]
-    model = torch.load(f"trained_models/best_{model_name}.model")
+    model = torch.load(f"trained_models/{model_name}.model")
     experiment = VAEXperiment(model, config['exp_params'], config['logging_params'], config['model_params'])
 
     for samples in num_samples:
