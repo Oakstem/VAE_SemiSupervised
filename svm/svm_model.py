@@ -101,7 +101,7 @@ def run_svm_tests(model_name: str, config_file: str):
     config = get_config(config_file)
     num_samples = [100, 600]
     df = pd.DataFrame(columns=['Samples_num', 'Accuracy', 'Loss'])
-    model = torch.load(f"trained_models/best_{model_name}.model")
+    model = torch.load(f"trained_models/{model_name}.model")
     experiment = VAEXperiment(model, config['exp_params'], config['logging_params'], config['model_params'])
 
     for samples in num_samples:

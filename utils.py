@@ -26,7 +26,7 @@ class subMNIST(FashionMNIST):
 
 
 def get_config(filename: str):
-    with open(f"configs/{filename}", 'r') as file:
+    with open(f"configs/{filename}.yaml", 'r') as file:
         try:
             config = yaml.safe_load(file)
         except yaml.YAMLError as exc:
