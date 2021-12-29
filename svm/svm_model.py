@@ -13,6 +13,7 @@ from experiment import VAEXperiment
 import pandas as pd
 from utils import get_config
 from utils import parse_args
+from torch.utils.data import Subset
 
 
 class SVMClass():
@@ -46,16 +47,7 @@ class SVMClass():
             label_subindex = list(label_index[:samples_per_class])
             train_label_index += label_subindex
 
-        trainset_np = dataset.dataset.data.numpy()
-        trainset_label_np = dataset.dataset.targets.numpy()
-        train_data_sub = torch.from_numpy(trainset_np[train_label_index])
-        train_labels_sub = torch.from_numpy(trainset_label_np[train_label_index])
-
-        trainset_new = subMNIST(root=self.params['exp_params']['data_path'],
-                                train=True, download=True, k=num_samples)
-        trainset_new.data = train_data_sub.clone()
-        trainset_new.targets = train_labels_sub.clone()
-
+        trainset_new = Subset(dataset.dataset, train_label_index)
         dataloader = DataLoader(trainset_new, batch_size=10, shuffle=True, drop_last=False)
 
         for idx, sample in enumerate(dataloader):
