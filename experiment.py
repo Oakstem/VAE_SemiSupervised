@@ -84,6 +84,8 @@ class VAEXperiment(pl.LightningModule):
 
     def training_epoch_end(self, outputs: list):
         self.logger.experiment.add_scalar("Loss/Train", outputs[0]['loss'].item(), self.current_epoch + 1)
+        self.logger.experiment.add_scalar("KLD_Loss/Train", outputs[0]['KLD'].item(), self.current_epoch + 1)
+        self.logger.experiment.add_scalar("Recons_Loss/Train", outputs[0]['Reconstruction_Loss'].item(), self.current_epoch + 1)
 
     def validation_step(self, batch, batch_idx, optimizer_idx=0):
         real_img, labels = batch
@@ -121,7 +123,7 @@ class VAEXperiment(pl.LightningModule):
                           normalize=True,
                           nrow=8)
         img_grid = torchvision.utils.make_grid(recons)
-        self.logger.experiment.add_image('Encoder generated images', img_grid)
+        self.logger.experiment.add_image('Encoder generated images', img_grid, self.current_epoch)
 
         del test_input, recons
 
