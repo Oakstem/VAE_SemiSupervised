@@ -86,6 +86,8 @@ class VAEXperiment(pl.LightningModule):
         self.logger.experiment.add_scalar("Loss/Train", outputs[0]['loss'].item(), self.current_epoch + 1)
         self.logger.experiment.add_scalar("KLD_Loss/Train", outputs[0]['KLD'].item(), self.current_epoch + 1)
         self.logger.experiment.add_scalar("Recons_Loss/Train", outputs[0]['Reconstruction_Loss'].item(), self.current_epoch + 1)
+        if self.current_epoch % 5 == 0:
+            self.sample_images()
 
     def validation_step(self, batch, batch_idx, optimizer_idx=0):
         real_img, labels = batch
@@ -105,8 +107,6 @@ class VAEXperiment(pl.LightningModule):
     def validation_epoch_end(self, outputs):
         # logging for checkpoint monitoring
         self.logger.experiment.add_scalar("Loss/Val", outputs[0]['loss'].item(), self.current_epoch)
-        if self.current_epoch % 5 == 0:
-            self.sample_images()
 
         return {'val_loss': outputs[0]['loss'].item()}
 
