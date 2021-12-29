@@ -104,7 +104,6 @@ class VAEXperiment(pl.LightningModule):
 
     def validation_epoch_end(self, outputs):
         # logging for checkpoint monitoring
-        self.log('val_loss', outputs[0]['loss'].item(), on_epoch=True, on_step=False)
         self.logger.experiment.add_scalar("Loss/Val", outputs[0]['loss'].item(), self.current_epoch)
         if self.current_epoch % 5 == 0:
             self.sample_images()
