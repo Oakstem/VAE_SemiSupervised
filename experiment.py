@@ -222,7 +222,7 @@ class VAEXperiment(pl.LightningModule):
 
         if self.params['dataset'] == 'fmnist':
             transform = transforms.Compose([transforms.ToTensor(),
-                                            transforms.Normalize((0.3,), (0.3,)),
+                                            transforms.Normalize((0.5,), (0.5,)),
                                             transforms.Resize(self.params['img_size'])
                                             ])
         elif self.params['dataset'] == 'mnist':
