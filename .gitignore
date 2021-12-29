@@ -13,3 +13,4 @@ tests/
 *.model
 *.ckpt
 trained_models/
+configs/vae.yaml

@@ -105,9 +105,10 @@ class VAEXperiment(pl.LightningModule):
         return val_loss
 
     def validation_epoch_end(self, outputs):
-        # logging for checkpoint monitoring
+        # logging for tensorboard
         self.logger.experiment.add_scalar("Loss/Val", outputs[0]['loss'].item(), self.current_epoch)
-
+        # logging for checkpoint purposes:
+        self.log('val_loss', outputs[0]['loss'].item(), on_epoch=True, on_step=False)
         return {'val_loss': outputs[0]['loss'].item()}
 
     def sample_images(self):
