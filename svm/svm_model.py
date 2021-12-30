@@ -1,7 +1,6 @@
 import torch
 import numpy as np
 import pickle
-from utils import subMNIST
 from models import BaseVAE
 from torch import nn
 from torch.nn import functional as F
