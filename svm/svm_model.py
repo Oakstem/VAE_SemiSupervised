@@ -86,9 +86,8 @@ class SVMClass():
         self.loss = self.loss / len(dataloader)
 
 
-def run_svm_tests(model_name: str, config_file: str):
+def run_svm_tests(model_name: str, config_file: str, num_samples: list = [100, 600, 1000, 3000]):
     # args = parse_args()
-    num_samples = [100, 600, 1000, 3000]
     config = get_config(config_file)
     df = pd.DataFrame(columns=['Samples_num', 'Accuracy', 'Loss'])
     model = torch.load(f"trained_models/{model_name}.model")
