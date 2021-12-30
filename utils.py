@@ -6,25 +6,6 @@ from torch.utils.data import DataLoader
 from torchvision import transforms
 
 
-from torchvision.datasets import FashionMNIST
-
-
-class subMNIST(FashionMNIST):
-    def __init__(self, root, train=True, target_transform=None, download=False, k=3000):
-        transform = transforms.Compose([transforms.ToTensor(),
-                                        transforms.Normalize((0.3,), (0.3,)),
-                                        transforms.Resize(32)
-                                        ])
-        super(subMNIST, self).__init__(root, train, transform, target_transform, download)
-        self.k = k
-
-    def __len__(self):
-        if self.train:
-            return self.k
-        else:
-            return 10000
-
-
 def get_config(filename: str):
     with open(f"configs/{filename}.yaml", 'r') as file:
         try:
@@ -49,9 +30,5 @@ def parse_args():
     parser.add_argument('--model', '-m',
                         type=str,
                         help='model name',
-                        default='m1')
-    parser.add_argument('--train', '-t',
-                        type=int,
-                        help="set '1' for training or '0' testing mode",
-                        default='0')
+                        default='vanilla')
     return parser.parse_args()
