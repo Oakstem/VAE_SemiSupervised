@@ -106,9 +106,8 @@ def run_svm_tests(model_name: str, config_file: str):
         df.to_csv(f'logs/classifiers/class_result_{model_name}_model.csv', index=False)
 
 
-def run_svm_train(model_name: str, config_file: str):
+def run_svm_train(model_name: str, config_file: str, num_samples: list = [100, 600, 1000, 3000]):
     # args = parse_args()
-    num_samples = [100, 600, 1000, 3000]
     config = get_config(config_file)
     model = torch.load(f"trained_models/{model_name}.model")
     experiment = VAEXperiment(model, config['exp_params'], config['logging_params'], config['model_params'])
