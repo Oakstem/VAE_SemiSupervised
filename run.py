@@ -37,9 +37,11 @@ runner = Trainer(default_root_dir=f"{tb_logger.save_dir}",
                  limit_train_batches=args.limit,
                  limit_val_batches=args.limit,
                  num_sanity_val_steps=1,
-                 callbacks=[SaveCallback.checkpoint_callback, SaveCallback.checkpoint_callback2, SaveCallback()],
+                 flush_logs_every_n_steps=10,
+                 callbacks=[SaveCallback.checkpoint_callback, SaveCallback()],
                  **config['trainer_params'])
 
 print(f"======= Training {config['model_params']['name']} =======")
 runner.fit(experiment)
 print(f"======= Finished Training =======")
+

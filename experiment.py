@@ -250,10 +250,7 @@ class SaveCallback(Callback):
         filename="best-{epoch:02d}-{val_loss:.2f}",
         save_top_k=1,
         mode="min",
-    )
-    checkpoint_callback2 = ModelCheckpoint(
-        dirpath="checkpoints/",
-        filename="sample-{epoch:02d}-{val_loss:.2f}",
+        save_last=True
     )
 
     def on_train_end(self, trainer, experiment):
