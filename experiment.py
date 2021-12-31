@@ -1,3 +1,4 @@
+import os
 import math
 import torch
 import torchvision
@@ -48,6 +49,10 @@ class VAEXperiment(pl.LightningModule):
         self.params = params
         self.log_params = log_params
         self.curr_device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
+        if self.curr_device == 'cpu':
+            self.num_cores = os.cpu_count()
+        else:
+            self.num_cores = 1
         self.hold_graph = False
         self.datasets = []  # train&val datasets
         self.test_dataset = []  # test dataset
@@ -167,7 +172,7 @@ class VAEXperiment(pl.LightningModule):
     def val_dataloader(self):
         self.sample_dataloader = DataLoader(self.datasets[1],
                                             batch_size=self.params['batch_size'],
-                                            shuffle=False,
+                                            shuffle=True,
                                             drop_last=True)
         self.num_val_imgs = len(self.datasets[1])
 
