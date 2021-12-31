@@ -11,7 +11,7 @@ exp_params:
   LR: 0.0003
   weight_decay: 0.0001
   scheduler_gamma: 0.95
-  kld_weight: 0.00025
+  kld_weight: 0.00015
 
 trainer_params:
   gpus: []

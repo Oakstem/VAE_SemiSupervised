@@ -1,0 +1,24 @@
+model_params:
+  name: 'VanillaVAE'
+  in_channels: 1
+  latent_dim: 50
+
+exp_params:
+  dataset: mnist
+  data_path: "data/"
+  img_size: 32
+  batch_size: 64
+  LR: 0.0001
+  weight_decay: 0.0001
+  scheduler_gamma: 0.95
+  kld_weight: 0.00025
+
+trainer_params:
+  gpus: []
+  max_epochs: 30
+
+logging_params:
+  save_dir: "logs/"
+  best_model_dir: "trained_models/best_vae.model"
+  name: "VanillaVAE"
+  manual_seed: 1265
