@@ -6,8 +6,10 @@ __pycache__/
 .ipynb_checkpoints/
 .idea/
 assets/
-logs/
 tests/
 *.model
 *.ckpt
 configs/vae.yaml
+*.0
+*.yaml
+*.png
